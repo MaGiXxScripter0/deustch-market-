@@ -102,6 +102,33 @@ export async function signOutAction() {
   redirect("/");
 }
 
+export async function updateProfileAction(
+  _: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const parsed = z
+    .object({
+      fullName: z.string().trim().min(2, "Bitte geben Sie Ihren vollständigen Namen ein.").max(120),
+      phone: z.string().trim().max(40),
+    })
+    .safeParse({ fullName: formData.get("fullName"), phone: formData.get("phone") });
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message };
+  const auth = await getCurrentProfile();
+  const supabase = await createClient();
+  if (!auth || !supabase) return { error: "Bitte melden Sie sich erneut an." };
+  const { error } = await supabase
+    .from("profiles")
+    .update({
+      full_name: parsed.data.fullName,
+      phone: parsed.data.phone,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", auth.user.id);
+  if (error) return { error: "Die Profildaten konnten nicht gespeichert werden." };
+  revalidatePath("/konto");
+  return { success: "Ihre Profildaten wurden gespeichert." };
+}
+
 export async function updateRequestStatusAction(formData: FormData) {
   const auth = await getCurrentProfile();
   if (auth?.profile?.role !== "admin") return;

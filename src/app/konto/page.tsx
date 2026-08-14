@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { FileText, LogOut, PackageSearch, UserRound } from "lucide-react";
 import { signOutAction } from "@/lib/actions";
+import { ProfileForm } from "@/components/profile-form";
 import { getCurrentProfile } from "@/lib/supabase/server";
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Mein Konto | Demo Baustoffmarkt" };
@@ -65,6 +66,10 @@ export default async function AccountPage() {
           </Link>
         )}
       </div>
+      <ProfileForm
+        fullName={auth.profile?.full_name ?? ""}
+        phone={auth.profile?.phone ?? ""}
+      />
     </main>
   );
 }
