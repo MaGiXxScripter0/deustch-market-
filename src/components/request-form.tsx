@@ -4,12 +4,19 @@ import { CalendarClock, CheckCircle2, LoaderCircle, MapPin, WalletCards } from "
 import Link from "next/link";
 import { useCallback, useState } from "react";
 import { euro } from "@/lib/catalog";
+import type { RequestContactDefaults } from "@/lib/request";
 import { siteConfig } from "@/lib/site-config";
 import type { Product } from "@/lib/types";
 import { useCart } from "./cart-provider";
 import { TurnstileWidget } from "./turnstile-widget";
 
-export function RequestForm({ products }: { products: Product[] }) {
+export function RequestForm({
+  products,
+  initialContact,
+}: {
+  products: Product[];
+  initialContact: RequestContactDefaults;
+}) {
   const { lines, clear, ready } = useCart();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -128,15 +135,33 @@ export function RequestForm({ products }: { products: Product[] }) {
             <div className="form-grid">
               <label>
                 Vor- und Nachname
-                <input name="name" required minLength={2} autoComplete="name" />
+                <input
+                  name="name"
+                  required
+                  minLength={2}
+                  autoComplete="name"
+                  defaultValue={initialContact.name}
+                />
               </label>
               <label>
                 E-Mail-Adresse
-                <input name="email" type="email" required autoComplete="email" />
+                <input
+                  name="email"
+                  type="email"
+                  required
+                  autoComplete="email"
+                  defaultValue={initialContact.email}
+                />
               </label>
               <label>
                 Telefonnummer
-                <input name="phone" type="tel" required autoComplete="tel" />
+                <input
+                  name="phone"
+                  type="tel"
+                  required
+                  autoComplete="tel"
+                  defaultValue={initialContact.phone}
+                />
               </label>
             </div>
           </div>
