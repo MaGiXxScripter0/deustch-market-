@@ -161,11 +161,25 @@ export function CatalogView({
         <CatalogPagination pathname={pathname} query={query} pageCount={result.pageCount} />
         {result.items.length === 0 && (
           <div className="empty-state">
-            <h2>Keine Produkte gefunden</h2>
-            <p>Entfernen Sie einzelne Filter oder setzen Sie die Auswahl vollständig zurück.</p>
-            <button className="button primary" onClick={resetFilters}>
-              Filter zurücksetzen
-            </button>
+            <h2>
+              {query.q ? `Keine Produkte für „${query.q}“ gefunden` : "Keine Produkte gefunden"}
+            </h2>
+            <p>Entfernen Sie einzelne Filter oder passen Sie Ihre Suche an.</p>
+            <div className="empty-state-actions">
+              {query.q && (
+                <button
+                  className="button secondary"
+                  onClick={() => router.push(buildCatalogHref(pathname, params, { q: undefined }))}
+                >
+                  Suche leeren
+                </button>
+              )}
+              {hasFilters && (
+                <button className="button primary" onClick={resetFilters}>
+                  Filter zurücksetzen
+                </button>
+              )}
+            </div>
           </div>
         )}
       </div>
