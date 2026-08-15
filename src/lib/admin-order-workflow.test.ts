@@ -1,3 +1,5 @@
+import { readFileSync, readdirSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   ADMIN_ORDER_STATUSES,
@@ -9,6 +11,31 @@ import {
 } from "./admin-order-workflow";
 
 describe("admin order workflow", () => {
+  it("ships the protected pickup authorization migration", () => {
+    const migrationsDirectory = resolve("supabase/migrations");
+    const migrationName = readdirSync(migrationsDirectory)
+      .sort()
+      .reverse()
+      .find((name) => {
+        if (!name.endsWith("_fix_admin_pickup_workflow.sql")) return false;
+        const candidate = readFileSync(resolve(migrationsDirectory, name), "utf8");
+        return (
+          candidate.includes("create or replace function public.set_pickup_order_status") &&
+          candidate.includes("revoke execute on function public.set_pickup_order_status") &&
+          candidate.includes("revoke execute on function public.set_pickup_item_picked")
+        );
+      });
+    const sql = migrationName
+      ? readFileSync(resolve(migrationsDirectory, migrationName), "utf8")
+      : "";
+
+    expect(migrationName).toBeDefined();
+    expect(sql).toContain("private.is_admin()");
+    expect(sql).not.toContain("public.is_admin()");
+    expect(sql).toContain("revoke execute on function public.set_pickup_order_status");
+    expect(sql).toContain("revoke execute on function public.set_pickup_item_picked");
+  });
+
   it("defines the canonical statuses and labels", () => {
     expect(ADMIN_ORDER_STATUSES).toEqual([
       "new",
