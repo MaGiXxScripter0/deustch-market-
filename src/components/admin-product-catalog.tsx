@@ -49,11 +49,7 @@ export function AdminProductCatalog({ products, enabled }: AdminProductCatalogPr
             autoComplete="off"
           />
           {query && (
-            <button
-              type="button"
-              aria-label="Suche leeren"
-              onClick={() => setQuery("")}
-            >
+            <button type="button" aria-label="Suche leeren" onClick={() => setQuery("")}>
               <X aria-hidden="true" />
             </button>
           )}
