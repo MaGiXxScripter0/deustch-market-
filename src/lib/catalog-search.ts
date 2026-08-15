@@ -1,6 +1,7 @@
 import { categories, products } from "./catalog-data";
 import { filterProducts, findSearchCorrection } from "./catalog";
 import { createPublicClient } from "./supabase/server";
+import type { Json } from "./supabase/database.types";
 import type {
   CatalogFacetValue,
   CatalogFacets,
@@ -12,6 +13,16 @@ import type {
 } from "./types";
 
 const pageSize = 24 as const;
+
+export function buildCatalogFilterValues(query: CatalogQuery) {
+  const filters: { [key: string]: Json | undefined } = {};
+  if (query.brands.length > 0) filters.brands = query.brands;
+  if (query.availability) filters.availability = query.availability;
+  if (query.minPrice !== undefined) filters.minPrice = query.minPrice;
+  if (query.maxPrice !== undefined) filters.maxPrice = query.maxPrice;
+  if (Object.keys(query.specs).length > 0) filters.specs = query.specs;
+  return filters;
+}
 
 function createDemoFacets(items: Product[], categoryItems: Category[]): CatalogFacets {
   const categories = categoryItems
@@ -114,13 +125,7 @@ export async function searchCatalog(
   const { data, error } = await supabase.rpc("search_products", {
     search_query: query.q,
     category_slug: categoryScope ?? query.category,
-    filter_values: {
-      brands: query.brands,
-      availability: query.availability,
-      minPrice: query.minPrice,
-      maxPrice: query.maxPrice,
-      specs: query.specs,
-    },
+    filter_values: buildCatalogFilterValues(query),
     sort_order: query.sort satisfies CatalogSort,
     page_number: query.page,
   });

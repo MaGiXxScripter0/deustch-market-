@@ -1,7 +1,38 @@
 import { describe, expect, it } from "vitest";
-import { searchCatalog } from "./catalog-search";
+import { buildCatalogFilterValues, searchCatalog } from "./catalog-search";
 
 describe("catalog search repository", () => {
+  it("omits empty filters from the Supabase search payload", () => {
+    expect(
+      buildCatalogFilterValues({
+        q: "",
+        brands: [],
+        specs: {},
+        sort: "featured",
+        page: 1,
+      }),
+    ).toEqual({});
+
+    expect(
+      buildCatalogFilterValues({
+        q: "",
+        brands: ["Knauf"],
+        availability: "pickup",
+        minPrice: 10,
+        maxPrice: 40,
+        specs: { Stärke: ["12,5 mm"] },
+        sort: "featured",
+        page: 1,
+      }),
+    ).toEqual({
+      brands: ["Knauf"],
+      availability: "pickup",
+      minPrice: 10,
+      maxPrice: 40,
+      specs: { Stärke: ["12,5 mm"] },
+    });
+  });
+
   it("uses the demo fallback with the same filtered and paginated result contract", async () => {
     const result = await searchCatalog({
       q: "platte",

@@ -7,6 +7,7 @@ import { buildCatalogHref } from "@/lib/catalog-query";
 import type { CatalogQuery, CatalogSearchResult, Category } from "@/lib/types";
 import { CatalogFilterPanel } from "./catalog-filter-panel";
 import { CatalogPagination } from "./catalog-pagination";
+import { CatalogSearchForm } from "./catalog-search-form";
 import { ProductCard } from "./product-card";
 
 export function CatalogView({
@@ -100,6 +101,7 @@ export function CatalogView({
       </div>
       <div className="catalog-results">
         <div className="catalog-toolbar">
+          <CatalogSearchForm action={pathname} initialValue={query.q} />
           <p>
             <strong>{result.total}</strong> {result.total === 1 ? "Produkt" : "Produkte"}
           </p>
