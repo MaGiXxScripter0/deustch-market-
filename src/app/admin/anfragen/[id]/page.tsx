@@ -7,7 +7,13 @@ import { AdminOrderStatusControl } from "@/components/admin-order-status-control
 import { euro } from "@/lib/catalog";
 import { getAdminCatalogData } from "@/lib/catalog-repository";
 import { DEMO_ORDER } from "@/lib/admin-demo-data";
-import { ADMIN_ORDER_STATUSES, type AdminOrderStatus } from "@/lib/admin-order-workflow";
+import {
+  ADMIN_ORDER_STATUSES,
+  getAdminOrderProgress,
+  getNextAdminOrderAction,
+  STATUS_LABELS,
+  type AdminOrderStatus,
+} from "@/lib/admin-order-workflow";
 import { createClient, getCurrentProfile } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -38,9 +44,8 @@ export default async function AdminRequestDetailPage({
     ? (order.status as AdminOrderStatus)
     : "new";
   const productBySku = new Map(products.map((product) => [product.sku, product]));
-  const allPicked = (order.request_items ?? []).every(
-    (item) => Number(item.picked_qty) >= Number(item.quantity),
-  );
+  const progress = getAdminOrderProgress(order.request_items ?? []);
+  const nextAction = getNextAdminOrderAction(orderStatus, progress.allPicked);
   const workflowMode = isDemo ? "demo" : "live";
   const itemIds = (order.request_items ?? []).map((item) => item.id);
   const workflow = (
@@ -55,9 +60,27 @@ export default async function AdminRequestDetailPage({
           mode={workflowMode}
           orderId={order.id}
           status={orderStatus}
-          allPicked={allPicked}
+          allPicked={progress.allPicked}
         />
       </div>
+      <section className="admin-order-operation-summary" aria-label="Bestellfortschritt">
+        <div>
+          <span>Status</span>
+          <strong>{STATUS_LABELS[orderStatus]}</strong>
+        </div>
+        <div>
+          <span>Kommissionierung</span>
+          <strong>{progress.pickedQuantity}/{progress.requiredQuantity} Artikel</strong>
+        </div>
+        <div>
+          <span>Nächster Schritt</span>
+          <strong>{nextAction?.label ?? "Kein weiterer Schritt verfügbar"}</strong>
+        </div>
+        <div>
+          <span>Abholcode</span>
+          <strong>{order.pickup_code}</strong>
+        </div>
+      </section>
       <section className="admin-order-card">
         <h2>Für die Abholung zusammenstellen</h2>
         <div className="admin-order-lines">
@@ -72,6 +95,8 @@ export default async function AdminRequestDetailPage({
                     itemId={item.id}
                     itemName={item.name_snapshot}
                     picked={picked}
+                    pickedQuantity={isDemo ? (picked ? Number(item.quantity) : 0) : Number(item.picked_qty)}
+                    requiredQuantity={Number(item.quantity)}
                     status={orderStatus}
                   />
                   <div className="pick-line-image">
@@ -136,7 +161,9 @@ export default async function AdminRequestDetailPage({
             {order.user_id ? (
               <Link href={`/admin/kunden/${order.user_id}`}><b>{order.customer_name}</b></Link>
             ) : (
-              <b>{order.customer_name} <small>(Gastbestellung)</small></b>
+              <Link href={`/admin/kunden/gast/${order.id}`}>
+                <b>{order.customer_name}</b> <small>(Gastkontakt öffnen)</small>
+              </Link>
             )}
             <br />
             <a href={`mailto:${order.customer_email}`}>{order.customer_email}</a>

@@ -19,17 +19,23 @@ type AdminPickingControlProps = {
   itemId: string;
   itemName: string;
   picked: boolean;
+  pickedQuantity: number;
+  requiredQuantity: number;
   status: AdminOrderStatus;
 };
 
 function PickingButton({
   itemName,
   picked,
+  pickedQuantity,
+  requiredQuantity,
   disabled,
   pending = false,
 }: {
   itemName: string;
   picked: boolean;
+  pickedQuantity: number;
+  requiredQuantity: number;
   disabled: boolean;
   pending?: boolean;
 }) {
@@ -55,7 +61,7 @@ function PickingButton({
         whiteSpace: "nowrap",
       }}
     >
-      {picked ? "✓ " : ""}Kommissioniert
+      {picked ? "✓ " : ""}Kommissioniert · {pickedQuantity}/{requiredQuantity}
     </button>
   );
 }
@@ -64,7 +70,15 @@ function Feedback({ result }: { result: AdminOrderActionState }) {
   return result.status === "idle" ? null : <p aria-live="polite">{result.message}</p>;
 }
 
-function LiveAdminPickingControl({ requestId, itemId, itemName, picked, status }: AdminPickingControlProps) {
+function LiveAdminPickingControl({
+  requestId,
+  itemId,
+  itemName,
+  picked,
+  pickedQuantity,
+  requiredQuantity,
+  status,
+}: AdminPickingControlProps) {
   const [result, formAction, pending] = useActionState(
     setPickupItemPickedAction,
     INITIAL_ADMIN_ORDER_ACTION_STATE,
@@ -78,7 +92,14 @@ function LiveAdminPickingControl({ requestId, itemId, itemName, picked, status }
         <input type="hidden" name="itemId" value={itemId} />
         <input type="hidden" name="requestId" value={requestId} />
         <input type="hidden" name="picked" value={String(!picked)} />
-        <PickingButton itemName={itemName} picked={picked} disabled={disabled} pending={pending} />
+        <PickingButton
+          itemName={itemName}
+          picked={picked}
+          pickedQuantity={pickedQuantity}
+          requiredQuantity={requiredQuantity}
+          disabled={disabled}
+          pending={pending}
+        />
       </form>
       {blockedReason && <p>{blockedReason}</p>}
       <Feedback result={result} />
@@ -86,7 +107,7 @@ function LiveAdminPickingControl({ requestId, itemId, itemName, picked, status }
   );
 }
 
-function DemoAdminPickingControl({ itemId, itemName }: AdminPickingControlProps) {
+function DemoAdminPickingControl({ itemId, itemName, requiredQuantity }: AdminPickingControlProps) {
   const { state, toggleItem } = useAdminDemoOrder();
   const [result, setResult] = useState<AdminOrderActionState>(INITIAL_ADMIN_ORDER_ACTION_STATE);
   const picked = state.pickedItemIds.includes(itemId);
@@ -106,7 +127,13 @@ function DemoAdminPickingControl({ itemId, itemName }: AdminPickingControlProps)
           });
         }}
       >
-        <PickingButton itemName={itemName} picked={picked} disabled={disabled} />
+        <PickingButton
+          itemName={itemName}
+          picked={picked}
+          pickedQuantity={picked ? requiredQuantity : 0}
+          requiredQuantity={requiredQuantity}
+          disabled={disabled}
+        />
       </form>
       {blockedReason && <p>{blockedReason}</p>}
       <Feedback result={result} />

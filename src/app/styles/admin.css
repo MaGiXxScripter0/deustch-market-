@@ -1713,6 +1713,34 @@
   cursor: pointer;
 }
 
+.admin-order-operation-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 22px;
+}
+
+.admin-order-operation-summary > div {
+  min-height: 74px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 7px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--white);
+}
+
+.admin-order-operation-summary span {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.admin-order-operation-summary strong {
+  font-size: 13px;
+}
+
 .admin-order-card,
 .admin-order-meta > section {
   margin-top: 22px;
@@ -1785,6 +1813,12 @@
 .pick-line-form button:disabled {
   cursor: not-allowed;
   opacity: 0.65;
+}
+
+.pick-line-form p {
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: 11px;
 }
 
 .pick-line-info > span,
@@ -2090,6 +2124,9 @@
   .admin-order-meta {
     grid-template-columns: 1fr;
   }
+  .admin-order-operation-summary {
+    grid-template-columns: 1fr 1fr;
+  }
   .admin-order-lines article {
     grid-template-columns: 1fr auto;
     gap: 14px;
@@ -2111,5 +2148,11 @@
   }
   .admin-category-list.editable > details > summary {
     min-width: 620px;
+  }
+}
+
+@media (max-width: 480px) {
+  .admin-order-operation-summary {
+    grid-template-columns: 1fr;
   }
 }
