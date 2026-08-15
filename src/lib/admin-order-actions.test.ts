@@ -17,10 +17,16 @@ const { setPickupItemPickedAction, updateRequestStatusAction } = await import(
 
 const REQUEST_ID = "123e4567-e89b-42d3-a456-426614174000";
 const ITEM_ID = "223e4567-e89b-42d3-a456-426614174001";
+const LEGACY_REQUEST_ID = "40000000-0000-0000-0000-000000000001";
+const LEGACY_ITEM_ID = "50000000-0000-0000-0000-000000000001";
 
 function statusFormData(status: string) {
+  return statusFormDataFor(REQUEST_ID, status);
+}
+
+function statusFormDataFor(id: string, status: string) {
   const formData = new FormData();
-  formData.set("id", REQUEST_ID);
+  formData.set("id", id);
   formData.set("status", status);
   return formData;
 }
@@ -158,6 +164,22 @@ describe("admin order actions", () => {
     expect(revalidatePath).toHaveBeenCalledWith("/konto/anfragen");
   });
 
+  it("accepts the deterministic seed request ID and reaches the status RPC", async () => {
+    const supabase = createSupabaseStub();
+    createClient.mockResolvedValue(supabase);
+
+    const result = await updateRequestStatusAction(
+      INITIAL_ADMIN_ORDER_ACTION_STATE,
+      statusFormDataFor(LEGACY_REQUEST_ID, "processing"),
+    );
+
+    expect(result).toEqual({ status: "success", message: "Der Bestellstatus wurde gespeichert." });
+    expect(supabase.rpc).toHaveBeenCalledWith("set_pickup_order_status", {
+      p_request_id: LEGACY_REQUEST_ID,
+      p_status: "processing",
+    });
+  });
+
   it("maps a failed picking mutation and leaves cached pages untouched", async () => {
     const supabase = createSupabaseStub({ rpcError: { message: "Order item cannot be changed" } });
     createClient.mockResolvedValue(supabase);
@@ -184,5 +206,25 @@ describe("admin order actions", () => {
     });
     expect(revalidatePath).toHaveBeenCalledWith(`/admin/anfragen/${REQUEST_ID}`);
     expect(revalidatePath).toHaveBeenCalledWith("/admin/anfragen");
+  });
+
+  it("accepts deterministic seed item and request IDs for picking", async () => {
+    const supabase = createSupabaseStub();
+    createClient.mockResolvedValue(supabase);
+    const formData = new FormData();
+    formData.set("requestId", LEGACY_REQUEST_ID);
+    formData.set("itemId", LEGACY_ITEM_ID);
+    formData.set("picked", "true");
+
+    const result = await setPickupItemPickedAction(
+      INITIAL_ADMIN_ORDER_ACTION_STATE,
+      formData,
+    );
+
+    expect(result).toEqual({ status: "success", message: "Position kommissioniert." });
+    expect(supabase.rpc).toHaveBeenCalledWith("set_pickup_item_picked", {
+      p_request_item_id: LEGACY_ITEM_ID,
+      p_picked: true,
+    });
   });
 });

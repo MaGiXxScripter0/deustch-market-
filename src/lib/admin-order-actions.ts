@@ -14,13 +14,13 @@ import {
 import { createClient, getCurrentProfile } from "./supabase/server";
 
 const statusMutationSchema = z.object({
-  id: z.uuid(),
+  id: z.guid(),
   status: z.enum(ADMIN_ORDER_STATUSES),
 });
 
 const pickingMutationSchema = z.object({
-  itemId: z.uuid(),
-  requestId: z.uuid(),
+  itemId: z.guid(),
+  requestId: z.guid(),
   picked: z.enum(["true", "false"]),
 });
 
