@@ -4,11 +4,17 @@ import { getCatalogData } from "@/lib/catalog-repository";
 import { createPublicClient } from "@/lib/supabase/server";
 
 export async function GET(request: Request) {
-  const query = new URL(request.url).searchParams.get("q") ?? "";
+  const query = (new URL(request.url).searchParams.get("q") ?? "").trim();
+  if (query.length > 120) {
+    return NextResponse.json({ items: [], error: "Suchanfrage ist zu lang." }, { status: 400 });
+  }
   if (query.trim().length < 2) return NextResponse.json({ items: [] });
   const supabase = createPublicClient();
   if (supabase) {
-    const { data } = await supabase.rpc("search_suggestions", { search_query: query });
+    const { data, error } = await supabase.rpc("search_suggestions", { search_query: query });
+    if (error && process.env.NODE_ENV === "production") {
+      return NextResponse.json({ items: [], error: "Suche ist vorübergehend nicht verfügbar." }, { status: 502 });
+    }
     if (data?.length) {
       return NextResponse.json(
         {
