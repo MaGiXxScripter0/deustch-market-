@@ -157,68 +157,6 @@ export async function updateProfileAction(
   return { success: "Ihre Profildaten wurden gespeichert." };
 }
 
-export async function updateRequestStatusAction(formData: FormData) {
-  const auth = await getCurrentProfile();
-  if (auth?.profile?.role !== "admin") return;
-  const id = String(formData.get("id") ?? "");
-  const status = z
-    .enum(["new", "processing", "ready_for_pickup", "completed", "cancelled"])
-    .safeParse(formData.get("status"));
-  if (!status.success) return;
-  const supabase = await createClient();
-  if (!supabase) return;
-  const { data: request } = await supabase
-    .from("requests")
-    .select("status, request_items(quantity, picked_qty)")
-    .eq("id", id)
-    .maybeSingle();
-  if (!request) return;
-  const allowedStatuses: Record<string, string[]> = {
-    new: ["new", "processing", "cancelled"],
-    processing: ["processing", "ready_for_pickup", "cancelled"],
-    ready_for_pickup: ["ready_for_pickup", "completed", "cancelled"],
-    completed: ["completed"],
-    cancelled: ["cancelled"],
-  };
-  if (!allowedStatuses[request.status]?.includes(status.data)) return;
-  const allPicked = (request.request_items ?? []).every(
-    (item) => Number(item.picked_qty) >= Number(item.quantity),
-  );
-  if (status.data === "ready_for_pickup" && !allPicked) return;
-  await supabase.rpc("set_pickup_order_status", {
-    p_request_id: id,
-    p_status: status.data,
-  });
-  revalidatePath("/admin/anfragen");
-  revalidatePath(`/admin/anfragen/${id}`);
-  revalidatePath("/konto/anfragen");
-}
-
-export async function setPickupItemPickedAction(formData: FormData) {
-  const auth = await getCurrentProfile();
-  if (auth?.profile?.role !== "admin") return;
-  const parsed = z
-    .object({
-      itemId: z.uuid(),
-      requestId: z.uuid(),
-      picked: z.enum(["true", "false"]),
-    })
-    .safeParse({
-      itemId: formData.get("itemId"),
-      requestId: formData.get("requestId"),
-      picked: formData.get("picked"),
-    });
-  if (!parsed.success) return;
-  const supabase = await createClient();
-  if (!supabase) return;
-  await supabase.rpc("set_pickup_item_picked", {
-    p_request_item_id: parsed.data.itemId,
-    p_picked: parsed.data.picked === "true",
-  });
-  revalidatePath(`/admin/anfragen/${parsed.data.requestId}`);
-  revalidatePath("/admin/anfragen");
-}
-
 export async function toggleProductAction(formData: FormData) {
   const auth = await getCurrentProfile();
   if (auth?.profile?.role !== "admin") return;
