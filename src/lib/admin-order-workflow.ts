@@ -18,6 +18,50 @@ export const STATUS_LABELS = {
 
 export type AdminOrderSort = "newest" | "oldest" | "highest";
 
+export type AdminOrderLineProgress = {
+  quantity: number;
+  picked_qty: number;
+};
+
+export type AdminOrderProgress = {
+  pickedQuantity: number;
+  requiredQuantity: number;
+  allPicked: boolean;
+};
+
+export function getAdminOrderProgress(
+  items: readonly AdminOrderLineProgress[] | null | undefined,
+): AdminOrderProgress {
+  const normalized = items ?? [];
+  const requiredQuantity = normalized.reduce(
+    (sum, item) => sum + Math.max(0, Number(item.quantity) || 0),
+    0,
+  );
+  const pickedQuantity = normalized.reduce((sum, item) => {
+    const quantity = Math.max(0, Number(item.quantity) || 0);
+    const picked = Math.max(0, Number(item.picked_qty) || 0);
+    return sum + Math.min(quantity, picked);
+  }, 0);
+  return {
+    pickedQuantity,
+    requiredQuantity,
+    allPicked: requiredQuantity > 0 && pickedQuantity === requiredQuantity,
+  };
+}
+
+export function getNextAdminOrderAction(status: AdminOrderStatus, allPicked: boolean) {
+  if (status === "new") {
+    return { status: "processing" as const, label: "Kommissionierung starten" };
+  }
+  if (status === "processing" && allPicked) {
+    return { status: "ready_for_pickup" as const, label: "Als abholbereit markieren" };
+  }
+  if (status === "ready_for_pickup") {
+    return { status: "completed" as const, label: "Als abgeholt markieren" };
+  }
+  return null;
+}
+
 export function normalizeAdminOrderFilters(params: {
   q?: string;
   status?: string;

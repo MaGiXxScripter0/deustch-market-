@@ -7,6 +7,8 @@ import {
   canTogglePicking,
   demoOrderReducer,
   getAllowedStatuses,
+  getAdminOrderProgress,
+  getNextAdminOrderAction,
   getPickingBlockedReason,
   normalizeAdminOrderFilters,
   summarizeCustomerOrders,
@@ -219,5 +221,38 @@ describe("admin order workflow", () => {
         { id: "3", subtotal: 10, created_at: "2026-03-01", status: "cancelled" },
       ]),
     ).toEqual({ orderCount: 3, totalSpent: 60, activePickupCount: 1, lastOrderAt: "2026-03-01" });
+  });
+
+  it("sums quantities rather than only counting picked lines", () => {
+    expect(
+      getAdminOrderProgress([
+        { quantity: 2, picked_qty: 1 },
+        { quantity: 3, picked_qty: 8 },
+      ]),
+    ).toEqual({ pickedQuantity: 4, requiredQuantity: 5, allPicked: false });
+  });
+
+  it("uses zero progress for an empty order and does not mark it ready", () => {
+    expect(getAdminOrderProgress([])).toEqual({
+      pickedQuantity: 0,
+      requiredQuantity: 0,
+      allPicked: false,
+    });
+  });
+
+  it("provides only the operational next action", () => {
+    expect(getNextAdminOrderAction("new", false)).toEqual({
+      status: "processing",
+      label: "Kommissionierung starten",
+    });
+    expect(getNextAdminOrderAction("processing", false)).toBeNull();
+    expect(getNextAdminOrderAction("processing", true)).toEqual({
+      status: "ready_for_pickup",
+      label: "Als abholbereit markieren",
+    });
+    expect(getNextAdminOrderAction("ready_for_pickup", true)).toEqual({
+      status: "completed",
+      label: "Als abgeholt markieren",
+    });
   });
 });
