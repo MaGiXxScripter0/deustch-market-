@@ -1,6 +1,24 @@
 import { z } from "zod";
 import type { Product } from "./types";
 
+export type RequestContactDefaults = {
+  name: string;
+  email: string;
+  phone: string;
+};
+
+export function getRequestContactDefaults(input: {
+  email?: string | null;
+  fullName?: string | null;
+  phone?: string | null;
+}): RequestContactDefaults {
+  return {
+    name: (input.fullName ?? "").trim(),
+    email: (input.email ?? "").trim(),
+    phone: (input.phone ?? "").trim(),
+  };
+}
+
 export const requestSchema = z
   .object({
     name: z.string().trim().min(2).max(120),

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { products } from "./catalog-data";
 import {
   calculateRequestSubtotal,
+  getRequestContactDefaults,
   hasUnavailableLines,
   requestSchema,
   resolveRequestLines,
@@ -45,5 +46,25 @@ describe("request validation", () => {
     const duplicate = { ...validPayload, items: [validPayload.items[0], validPayload.items[0]] };
 
     expect(requestSchema.safeParse(duplicate).success).toBe(false);
+  });
+});
+
+describe("request contact defaults", () => {
+  it("maps account contact data to checkout defaults", () => {
+    expect(
+      getRequestContactDefaults({
+        email: "kunde@example.com",
+        fullName: " Max Mustermann ",
+        phone: " +49 123 456 ",
+      }),
+    ).toEqual({ name: "Max Mustermann", email: "kunde@example.com", phone: "+49 123 456" });
+  });
+
+  it("keeps missing account fields empty", () => {
+    expect(getRequestContactDefaults({ email: null, fullName: null, phone: undefined })).toEqual({
+      name: "",
+      email: "",
+      phone: "",
+    });
   });
 });
