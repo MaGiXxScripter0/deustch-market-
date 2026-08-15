@@ -2,8 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { CatalogView } from "@/components/catalog-view";
+import { CatalogCategoryResults } from "@/components/catalog-category-results";
 import { JsonLd } from "@/components/json-ld";
-import { getCatalogData } from "@/lib/catalog-repository";
+import { parseCatalogQuery } from "@/lib/catalog-query";
+import { searchCatalog } from "@/lib/catalog-search";
+import { getPublicCategories } from "@/lib/catalog-repository";
 import { siteConfig } from "@/lib/site-config";
 
 export const metadata: Metadata = {
@@ -11,8 +14,13 @@ export const metadata: Metadata = {
   description: "24 ausgewählte Baustoffe für Trockenbau, Rohbau, Dämmung, Holz und Dach.",
   alternates: { canonical: "/sortiment" },
 };
-export default async function SortimentPage() {
-  const { categories, products } = await getCatalogData();
+export default async function SortimentPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const query = parseCatalogQuery(await searchParams);
+  const [categories, result] = await Promise.all([getPublicCategories(), searchCatalog(query)]);
   const base = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
   return (
     <main className="shell page-main">
@@ -20,10 +28,10 @@ export default async function SortimentPage() {
         data={{
           "@context": "https://schema.org",
           "@type": "ItemList",
-          numberOfItems: products.length,
-          itemListElement: products.map((product, index) => ({
+          numberOfItems: result.total,
+          itemListElement: result.items.map((product, index) => ({
             "@type": "ListItem",
-            position: index + 1,
+            position: (result.page - 1) * result.pageSize + index + 1,
             url: `${base}/produkt/${product.slug}`,
             name: product.name,
           })),
@@ -33,15 +41,16 @@ export default async function SortimentPage() {
         <p className="breadcrumbs">
           <Link href="/">Startseite</Link> / Sortiment
         </p>
-        <p className="kicker">24 PRODUKTE · 6 KATEGORIEN</p>
+        <p className="kicker">{result.total} PRODUKTE · {categories.length} KATEGORIEN</p>
         <h1>Baustoffe für klare Entscheidungen.</h1>
         <p>
           Übersichtlich sortiert, transparent bepreist und mit aktuellem Bestand für{" "}
           {siteConfig.storeName}.
         </p>
       </div>
+      <CatalogCategoryResults hits={result.facets.categories} query={query} />
       <Suspense fallback={<div className="loading-card">Sortiment wird geladen …</div>}>
-        <CatalogView initialProducts={products} categories={categories} />
+        <CatalogView pathname="/sortiment" query={query} result={result} categories={categories} />
       </Suspense>
     </main>
   );

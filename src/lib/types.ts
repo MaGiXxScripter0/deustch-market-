@@ -61,5 +61,56 @@ export type CatalogFilters = {
   minPrice?: number;
   maxPrice?: number;
   specs?: Record<string, string[]>;
-  sort?: "featured" | "price-asc" | "price-desc" | "name";
+  sort?: CatalogSort;
+};
+
+export type CatalogSort = "relevance" | "featured" | "price-asc" | "price-desc" | "name";
+
+export type CatalogSearchParams = Record<string, string | string[] | undefined>;
+
+export type CatalogQuery = {
+  q: string;
+  category?: string;
+  brands: string[];
+  availability?: Fulfillment;
+  minPrice?: number;
+  maxPrice?: number;
+  specs: Record<string, string[]>;
+  sort: CatalogSort;
+  page: number;
+};
+
+export type CatalogFacetValue = { value: string; count: number };
+
+export type CategorySearchHit = Pick<
+  Category,
+  "id" | "slug" | "name" | "shortName" | "description"
+> & { count: number };
+
+export type CatalogFacets = {
+  categories: CategorySearchHit[];
+  brands: CatalogFacetValue[];
+  minPrice: number | null;
+  maxPrice: number | null;
+  specs: Record<string, CatalogFacetValue[]>;
+};
+
+export type CatalogSearchResult = {
+  items: Product[];
+  total: number;
+  page: number;
+  pageSize: 24;
+  pageCount: number;
+  hasPreviousPage: boolean;
+  hasNextPage: boolean;
+  facets: CatalogFacets;
+  correction?: string;
+  source: "supabase" | "demo";
+};
+
+export type SearchSuggestion = {
+  type: "product" | "category";
+  label: string;
+  meta: string;
+  href: string;
 };
