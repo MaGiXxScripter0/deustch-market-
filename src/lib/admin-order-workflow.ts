@@ -16,6 +16,23 @@ export const STATUS_LABELS = {
   cancelled: "Storniert",
 } satisfies Record<AdminOrderStatus, string>;
 
+export type AdminOrderSort = "newest" | "oldest" | "highest";
+
+export function normalizeAdminOrderFilters(params: {
+  q?: string;
+  status?: string;
+  sort?: string;
+}) {
+  return {
+    q: (params.q ?? "").trim().slice(0, 80).replace(/[%_(),]/g, ""),
+    status: ADMIN_ORDER_STATUSES.includes(params.status as AdminOrderStatus)
+      ? (params.status as AdminOrderStatus)
+      : "all",
+    sort:
+      params.sort === "oldest" || params.sort === "highest" ? params.sort : "newest",
+  } as const;
+}
+
 export function getAllowedStatuses(status: AdminOrderStatus, allPicked = false): AdminOrderStatus[] {
   switch (status) {
     case "new":

@@ -1026,11 +1026,42 @@
   position: absolute;
   inset: 0;
   z-index: 1;
+  border-radius: inherit;
+}
+
+.request-admin-card-link:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: -3px;
 }
 
 .request-admin-list article > :not(.request-admin-card-link) {
   position: relative;
   z-index: 2;
+}
+
+.request-admin-list article > div,
+.request-admin-list article > strong,
+.request-admin-list article > p {
+  pointer-events: none;
+}
+
+.request-admin-list .request-admin-customer-link,
+.request-admin-list .admin-order-status {
+  position: relative;
+  z-index: 3;
+  pointer-events: auto;
+}
+
+.request-admin-customer-link {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.request-admin-customer-link:hover b {
+  color: var(--accent);
 }
 
 .request-admin-list article:last-child {
@@ -1123,6 +1154,56 @@
 
 .request-admin-list form button {
   border-radius: 0 7px 7px 0;
+}
+
+.request-admin-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 18px 0;
+}
+
+.request-admin-filters input,
+.request-admin-filters select {
+  min-height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--white);
+  color: var(--ink);
+  font: inherit;
+  font-size: 12px;
+}
+
+.request-admin-filters input {
+  min-width: min(320px, 100%);
+  flex: 1 1 240px;
+}
+
+.request-admin-filters button,
+.request-admin-filters a {
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--ink);
+  color: var(--white);
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.request-admin-filters a {
+  background: var(--white);
+  color: var(--ink);
+}
+
+.admin-empty-state {
+  padding: 32px 20px;
+  color: var(--muted);
+  text-align: center;
 }
 
 .admin-category-list.editable > details {

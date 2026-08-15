@@ -8,6 +8,7 @@ import {
   demoOrderReducer,
   getAllowedStatuses,
   getPickingBlockedReason,
+  normalizeAdminOrderFilters,
 } from "./admin-order-workflow";
 
 describe("admin order workflow", () => {
@@ -186,5 +187,20 @@ describe("admin order workflow", () => {
         state: { status: "unknown", pickedItemIds: [] },
       } as never),
     ).toEqual(current);
+  });
+
+  it("normalizes safe list filters", () => {
+    expect(
+      normalizeAdminOrderFilters({
+        q: "  ABH_%(2026),123  ",
+        status: "processing",
+        sort: "oldest",
+      }),
+    ).toEqual({ q: "ABH2026123", status: "processing", sort: "oldest" });
+    expect(normalizeAdminOrderFilters({ q: "x".repeat(100), status: "invalid", sort: "nope" })).toEqual({
+      q: "x".repeat(80),
+      status: "all",
+      sort: "newest",
+    });
   });
 });
