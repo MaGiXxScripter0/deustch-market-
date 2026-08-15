@@ -48,6 +48,10 @@ Die Suche wird über die URL synchronisiert. Ein Absenden des Suchformulars navi
 - Bei keinem Kategorie-Treffer bleibt der Abschnitt stabil und erklärt, dass keine Kategorie passt; die Produktsuche kann trotzdem Ergebnisse liefern.
 - Bei keinem Produkttreffer wird der bestehende Empty-State mit einer Suche-zurücksetzen-Aktion verwendet.
 
+## Implementierte Architektur
+
+`/sortiment`, `/suche` und `/kategorie/[slug]` verwenden denselben serverseitigen Suchvertrag. Der Kategoriepfad ist ein zwingender Scope; ein URL-Parameter `category` kann ihn nicht überschreiben. Die RPC berücksichtigt aktive Kategorien, unkategorisierte aktive Produkte, den Pickup-Standort `baumarkt-nassauer-land`, Facetten und 24er-Paginierung. Kategorie-Treffer aus den Server-Facetten behalten `q` beim Öffnen einer Kategorie.
+
 ## Verifikation
 
 - Unit-Tests prüfen, dass ein Suchbegriff Produkte global und innerhalb einer Kategorie korrekt filtert.
