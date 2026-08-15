@@ -3,23 +3,45 @@
 import { Search, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 
 type Suggestion = { type: string; label: string; meta: string; href: string };
+
+export function nextAutocompleteIndex(
+  current: number,
+  itemCount: number,
+  key: "ArrowDown" | "ArrowUp" | "Escape",
+) {
+  if (!itemCount || key === "Escape") return -1;
+  if (key === "ArrowDown") return current >= itemCount - 1 ? 0 : current + 1;
+  return current <= 0 ? itemCount - 1 : current - 1;
+}
 
 export function SearchAutocomplete({ initialValue = "" }: { initialValue?: string }) {
   const [query, setQuery] = useState(initialValue);
   const [items, setItems] = useState<Suggestion[]>([]);
   const [focused, setFocused] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(-1);
+  const router = useRouter();
   const boxRef = useRef<HTMLDivElement>(null);
+  const requestId = useRef(0);
 
   useEffect(() => {
-    if (query.trim().length < 2) return;
+    if (query.trim().length < 2) {
+      return;
+    }
     const controller = new AbortController();
+    const currentRequest = ++requestId.current;
     const timer = window.setTimeout(
       () =>
         fetch(`/api/suggestions?q=${encodeURIComponent(query)}`, { signal: controller.signal })
           .then((response) => response.json())
-          .then((data) => setItems(data.items ?? []))
+          .then((data) => {
+            if (currentRequest === requestId.current) {
+              setItems(data.items ?? []);
+              setActiveIndex(-1);
+            }
+          })
           .catch(() => {}),
       160,
     );
@@ -48,8 +70,32 @@ export function SearchAutocomplete({ initialValue = "" }: { initialValue?: strin
           id="global-search"
           name="q"
           value={query}
-          onChange={(event) => setQuery(event.target.value)}
+          onChange={(event) => {
+            const value = event.target.value;
+            setQuery(value);
+            if (value.trim().length < 2) {
+              setItems([]);
+              setActiveIndex(-1);
+            }
+          }}
           onFocus={() => setFocused(true)}
+          onKeyDown={(event) => {
+            if (event.key === "ArrowDown" || event.key === "ArrowUp" || event.key === "Escape") {
+              event.preventDefault();
+              setActiveIndex(nextAutocompleteIndex(activeIndex, items.length, event.key));
+              if (event.key === "Escape") setFocused(false);
+            }
+            if (event.key === "Enter" && activeIndex >= 0) {
+              event.preventDefault();
+              router.push(items[activeIndex].href);
+              setFocused(false);
+            }
+          }}
+          role="combobox"
+          aria-autocomplete="list"
+          aria-expanded={focused && items.length > 0}
+          aria-controls="global-search-suggestions"
+          aria-activedescendant={activeIndex >= 0 ? `global-search-option-${activeIndex}` : undefined}
           autoComplete="off"
           placeholder="Produkt, Kategorie oder Artikelnummer"
         />
@@ -58,7 +104,11 @@ export function SearchAutocomplete({ initialValue = "" }: { initialValue?: strin
             className="clear-search"
             type="button"
             aria-label="Suche leeren"
-            onClick={() => setQuery("")}
+            onClick={() => {
+              setQuery("");
+              setItems([]);
+              setActiveIndex(-1);
+            }}
           >
             <X size={16} />
           </button>
@@ -68,11 +118,14 @@ export function SearchAutocomplete({ initialValue = "" }: { initialValue?: strin
         </button>
       </form>
       {focused && query.trim().length >= 2 && items.length > 0 && (
-        <div className="suggestions" role="listbox">
-          {items.map((item) => (
+        <div className="suggestions" id="global-search-suggestions" role="listbox">
+          {items.map((item, index) => (
             <Link
               key={`${item.type}-${item.href}`}
               href={item.href}
+              id={`global-search-option-${index}`}
+              role="option"
+              aria-selected={activeIndex === index}
               onClick={() => setFocused(false)}
             >
               <span>
