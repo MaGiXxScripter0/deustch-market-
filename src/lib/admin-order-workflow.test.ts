@@ -22,7 +22,7 @@ describe("admin order workflow", () => {
 
   it("returns status transitions with the processing readiness guard", () => {
     expect(getAllowedStatuses("new")).toEqual(["new", "processing", "cancelled"]);
-    expect(getAllowedStatuses("processing")).toEqual([
+    expect(getAllowedStatuses("processing", true)).toEqual([
       "processing",
       "ready_for_pickup",
       "cancelled",
@@ -89,5 +89,32 @@ describe("admin order workflow", () => {
         state: { status: "processing", pickedItemIds: ["line-2"] },
       }),
     ).toEqual({ status: "processing", pickedItemIds: ["line-2"] });
+  });
+
+  it("requires explicit picking proof before becoming ready", () => {
+    const processing = demoOrderReducer(undefined, { type: "set-status", status: "processing" });
+    expect(
+      demoOrderReducer(processing, {
+        type: "set-status",
+        status: "ready_for_pickup",
+        allPicked: false,
+      }),
+    ).toEqual(processing);
+    expect(
+      demoOrderReducer(processing, {
+        type: "set-status",
+        status: "ready_for_pickup",
+      } as never),
+    ).toEqual(processing);
+  });
+
+  it("rejects malformed hydrated statuses", () => {
+    const current = { status: "processing" as const, pickedItemIds: ["line-1"] };
+    expect(
+      demoOrderReducer(current, {
+        type: "hydrate",
+        state: { status: "unknown", pickedItemIds: [] },
+      } as never),
+    ).toEqual(current);
   });
 });

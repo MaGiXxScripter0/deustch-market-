@@ -16,7 +16,7 @@ export const STATUS_LABELS = {
   cancelled: "Storniert",
 } satisfies Record<AdminOrderStatus, string>;
 
-export function getAllowedStatuses(status: AdminOrderStatus, allPicked = true): AdminOrderStatus[] {
+export function getAllowedStatuses(status: AdminOrderStatus, allPicked = false): AdminOrderStatus[] {
   switch (status) {
     case "new":
       return ["new", "processing", "cancelled"];
@@ -69,6 +69,7 @@ export function demoOrderReducer(
   action: DemoOrderAction,
 ): DemoOrderState {
   if (action.type === "hydrate") {
+    if (!ADMIN_ORDER_STATUSES.includes(action.state.status)) return state;
     return { status: action.state.status, pickedItemIds: [...action.state.pickedItemIds] };
   }
 
@@ -84,6 +85,6 @@ export function demoOrderReducer(
   }
 
   if (!ADMIN_ORDER_STATUSES.includes(action.status)) return state;
-  if (!getAllowedStatuses(state.status, action.allPicked).includes(action.status)) return state;
+  if (!getAllowedStatuses(state.status, action.allPicked === true).includes(action.status)) return state;
   return { ...state, status: action.status };
 }
