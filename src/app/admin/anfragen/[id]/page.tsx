@@ -1,54 +1,16 @@
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { setPickupItemPickedAction, updateRequestStatusAction } from "@/lib/actions";
+import { AdminDemoOrderProvider } from "@/components/admin-demo-order-provider";
+import { AdminPickingControl } from "@/components/admin-picking-control";
+import { AdminOrderStatusControl } from "@/components/admin-order-status-control";
 import { euro } from "@/lib/catalog";
 import { getAdminCatalogData } from "@/lib/catalog-repository";
+import { DEMO_ORDER } from "@/lib/admin-demo-data";
+import { ADMIN_ORDER_STATUSES, type AdminOrderStatus } from "@/lib/admin-order-workflow";
 import { createClient, getCurrentProfile } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
-
-const statusLabels: Record<string, string> = {
-  new: "Bestellung eingegangen",
-  processing: "Wird zusammengestellt",
-  ready_for_pickup: "Abholbereit",
-  completed: "Abgeholt",
-  cancelled: "Storniert",
-};
-
-const nextStatuses: Record<string, string[]> = {
-  new: ["new", "processing", "cancelled"],
-  processing: ["processing", "ready_for_pickup", "cancelled"],
-  ready_for_pickup: ["ready_for_pickup", "completed", "cancelled"],
-  completed: ["completed"],
-  cancelled: ["cancelled"],
-};
-
-const demoOrder = {
-  id: "demo-1",
-  request_number: "ABH-2026-000123",
-  status: "new",
-  subtotal: 248.4,
-  customer_name: "Anna Beispiel",
-  customer_email: "anna@example.de",
-  customer_phone: "+49 30 000000",
-  comment: "Bitte am Abholschalter melden.",
-  created_at: new Date().toISOString(),
-  pickup_code: "ABH-123",
-  pickup_slot_start: null,
-  request_items: [
-    {
-      id: "demo-line-1",
-      sku_snapshot: "NW-125-260",
-      name_snapshot: "Gipskartonplatte Pro 12,5 mm",
-      sale_unit_snapshot: "Stück",
-      quantity: 2,
-      picked_qty: 0,
-      unit_price: 8.95,
-      line_total: 17.9,
-    },
-  ],
-};
 
 export default async function AdminRequestDetailPage({
   params,
@@ -58,7 +20,8 @@ export default async function AdminRequestDetailPage({
   const auth = await getCurrentProfile();
   const enabled = auth?.profile?.role === "admin";
   const { id } = await params;
-  const supabase = enabled ? await createClient() : null;
+  const isDemo = id === DEMO_ORDER.id;
+  const supabase = enabled && !isDemo ? await createClient() : null;
   const { products } = await getAdminCatalogData();
   const { data } = supabase
     ? await supabase
@@ -68,15 +31,76 @@ export default async function AdminRequestDetailPage({
         )
         .eq("id", id)
         .maybeSingle()
-    : { data: demoOrder };
-  const order = data ?? (enabled ? null : demoOrder);
+    : { data: DEMO_ORDER };
+  const order = data ?? (isDemo ? DEMO_ORDER : null);
   if (!order) notFound();
+  const orderStatus = ADMIN_ORDER_STATUSES.includes(order.status as AdminOrderStatus)
+    ? (order.status as AdminOrderStatus)
+    : "new";
   const productBySku = new Map(products.map((product) => [product.sku, product]));
   const allPicked = (order.request_items ?? []).every(
     (item) => Number(item.picked_qty) >= Number(item.quantity),
   );
-  const allowedStatuses = (nextStatuses[order.status] ?? [order.status]).filter(
-    (status) => status !== "ready_for_pickup" || allPicked,
+  const workflowMode = isDemo ? "demo" : "live";
+  const itemIds = (order.request_items ?? []).map((item) => item.id);
+  const workflow = (
+    <>
+      <div className="admin-heading">
+        <div>
+          <p className="kicker">ABHOLBESTELLUNG</p>
+          <h1>{order.request_number}</h1>
+          <p>{new Date(order.created_at).toLocaleString("de-DE")}</p>
+        </div>
+        <AdminOrderStatusControl
+          mode={workflowMode}
+          orderId={order.id}
+          status={orderStatus}
+          allPicked={allPicked}
+        />
+      </div>
+      <section className="admin-order-card">
+        <h2>Für die Abholung zusammenstellen</h2>
+        <div className="admin-order-lines">
+          {(order.request_items ?? []).map((item) => {
+            const picked = Number(item.picked_qty) >= Number(item.quantity);
+            return (
+              <article key={item.id} className={picked ? "is-picked" : undefined}>
+                <div className="pick-line-info">
+                  <AdminPickingControl
+                    mode={workflowMode}
+                    requestId={order.id}
+                    itemId={item.id}
+                    itemName={item.name_snapshot}
+                    picked={picked}
+                    status={orderStatus}
+                  />
+                  <div className="pick-line-image">
+                    <Image
+                      src={productBySku.get(item.sku_snapshot)?.image ?? "/og.png"}
+                      alt=""
+                      fill
+                      sizes="64px"
+                    />
+                  </div>
+                  <span>
+                    <small>{item.sku_snapshot}</small>
+                    <b>{item.name_snapshot}</b>
+                  </span>
+                </div>
+                <strong>
+                  {Number(item.quantity).toLocaleString("de-DE")} {item.sale_unit_snapshot}
+                </strong>
+                <span>{euro.format(Number(item.line_total))}</span>
+              </article>
+            );
+          })}
+        </div>
+        <div className="admin-order-total">
+          <span>Gesamtsumme</span>
+          <strong>{euro.format(Number(order.subtotal))}</strong>
+        </div>
+      </section>
+    </>
   );
 
   return (
@@ -84,82 +108,27 @@ export default async function AdminRequestDetailPage({
       <p className="breadcrumbs">
         <Link href="/admin/anfragen">Bestellungen</Link> / {order.request_number}
       </p>
-      {!enabled && (
+      {isDemo && (
         <div className="admin-warning">
-          Vorschaumodus: Status und Kommissionierung werden nur mit einem Admin-Konto gespeichert.
+          Interaktive Demo: Status und Kommissionierung gelten nur für diese Browsersitzung.
         </div>
       )}
-      <div className="admin-heading">
-        <div>
-          <p className="kicker">ABHOLBESTELLUNG</p>
-          <h1>{order.request_number}</h1>
-          <p>{new Date(order.created_at).toLocaleString("de-DE")}</p>
-        </div>
-        <form action={updateRequestStatusAction} className="admin-order-status">
-          <input type="hidden" name="id" value={order.id} />
-          <select name="status" defaultValue={order.status} disabled={!enabled}>
-            {allowedStatuses.map((status) => (
-              <option value={status} key={status}>
-                {statusLabels[status] ?? status}
-              </option>
-            ))}
-          </select>
-          <button type="submit" disabled={!enabled}>
-            Status speichern
-          </button>
-        </form>
-      </div>
-      <section className="admin-order-card">
-        <h2>Für die Abholung zusammenstellen</h2>
-        <div className="admin-order-lines">
-          {(order.request_items ?? []).map((item) => (
-            <article
-              key={item.id}
-              className={Number(item.picked_qty) >= Number(item.quantity) ? "is-picked" : undefined}
-            >
-              <div className="pick-line-info">
-                <form action={setPickupItemPickedAction} className="pick-line-form">
-                  <input type="hidden" name="itemId" value={item.id} />
-                  <input type="hidden" name="requestId" value={order.id} />
-                  <input
-                    type="hidden"
-                    name="picked"
-                    value={String(Number(item.picked_qty) < Number(item.quantity))}
-                  />
-                  <button
-                    type="submit"
-                    className={Number(item.picked_qty) >= Number(item.quantity) ? "picked" : ""}
-                    aria-label={`${item.name_snapshot} ${Number(item.picked_qty) >= Number(item.quantity) ? "zurücksetzen" : "kommissioniert"}`}
-                    disabled={!enabled || !["new", "processing"].includes(order.status)}
-                  >
-                    {Number(item.picked_qty) >= Number(item.quantity) ? "✓" : ""}
-                  </button>
-                </form>
-                <div className="pick-line-image">
-                  <Image
-                    src={productBySku.get(item.sku_snapshot)?.image ?? "/og.png"}
-                    alt=""
-                    fill
-                    sizes="64px"
-                  />
-                </div>
-                <span>
-                  <small>{item.sku_snapshot}</small>
-                  <b>{item.name_snapshot}</b>
-                </span>
-              </div>
-              <strong>
-                {Number(item.quantity).toLocaleString("de-DE")} {item.sale_unit_snapshot}
-              </strong>
-              <span>{euro.format(Number(item.line_total))}</span>
-            </article>
-          ))}
-        </div>
-        <div className="admin-order-total">
-          <span>Gesamtsumme</span>
-          <strong>{euro.format(Number(order.subtotal))}</strong>
-        </div>
-      </section>
+      {isDemo ? (
+        <AdminDemoOrderProvider
+          orderId={order.id}
+          initialState={{
+            status: orderStatus,
+            pickedItemIds: (order.request_items ?? [])
+              .filter((item) => Number(item.picked_qty) >= Number(item.quantity))
+              .map((item) => item.id),
+          }}
+          allItemIds={itemIds}
+        >
+          {workflow}
+        </AdminDemoOrderProvider>
+      ) : (
+        workflow
+      )}
       <div className="admin-order-meta">
         <section>
           <h2>Kundendaten</h2>

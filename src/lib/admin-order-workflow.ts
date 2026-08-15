@@ -59,7 +59,7 @@ export type DemoOrderState = {
 
 export type DemoOrderAction =
   | { type: "toggle-item"; itemId: string }
-  | { type: "set-status"; status: AdminOrderStatus; allPicked?: boolean }
+  | { type: "set-status"; status: AdminOrderStatus; allItemIds: string[] }
   | { type: "hydrate"; state: DemoOrderState };
 
 const INITIAL_STATE: DemoOrderState = { status: "new", pickedItemIds: [] };
@@ -85,6 +85,7 @@ export function demoOrderReducer(
   }
 
   if (!ADMIN_ORDER_STATUSES.includes(action.status)) return state;
-  if (!getAllowedStatuses(state.status, action.allPicked === true).includes(action.status)) return state;
+  const allPicked = action.allItemIds.every((itemId) => state.pickedItemIds.includes(itemId));
+  if (!getAllowedStatuses(state.status, allPicked).includes(action.status)) return state;
   return { ...state, status: action.status };
 }

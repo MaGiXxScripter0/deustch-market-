@@ -81,33 +81,45 @@ describe("admin order workflow", () => {
       status: "new",
       pickedItemIds: [],
     });
-    const processing = demoOrderReducer(initial, { type: "set-status", status: "processing" });
+    const processing = demoOrderReducer(initial, {
+      type: "set-status",
+      status: "processing",
+      allItemIds: ["line-1"],
+    });
     const ready = demoOrderReducer(processing, {
       type: "set-status",
       status: "ready_for_pickup",
-      allPicked: true,
+      allItemIds: ["line-1"],
     });
-    const completed = demoOrderReducer(ready, { type: "set-status", status: "completed" });
+    const completed = demoOrderReducer(ready, {
+      type: "set-status",
+      status: "completed",
+      allItemIds: ["line-1"],
+    });
     expect(demoOrderReducer(completed, { type: "toggle-item", itemId: "line-2" })).toEqual(
       completed,
     );
   });
 
   it("rejects illegal status transitions and hydrates state", () => {
-    const processing = demoOrderReducer(undefined, { type: "set-status", status: "processing" });
+    const processing = demoOrderReducer(undefined, {
+      type: "set-status",
+      status: "processing",
+      allItemIds: ["line-1"],
+    });
     expect(processing.status).toBe("processing");
     expect(
       demoOrderReducer(processing, {
         type: "set-status",
         status: "ready_for_pickup",
-        allPicked: false,
+        allItemIds: ["line-1"],
       }),
     ).toEqual(processing);
     expect(
       demoOrderReducer(processing, {
         type: "set-status",
         status: "ready_for_pickup",
-        allPicked: true,
+        allItemIds: [],
       }),
     ).toEqual({ status: "ready_for_pickup", pickedItemIds: [] });
     expect(
@@ -118,21 +130,52 @@ describe("admin order workflow", () => {
     ).toEqual({ status: "processing", pickedItemIds: ["line-2"] });
   });
 
-  it("requires explicit picking proof before becoming ready", () => {
-    const processing = demoOrderReducer(undefined, { type: "set-status", status: "processing" });
+  it("does not allow a ready status before a listed item is picked", () => {
+    const processing = demoOrderReducer(undefined, {
+      type: "set-status",
+      status: "processing",
+      allItemIds: ["line-1"],
+    });
     expect(
       demoOrderReducer(processing, {
         type: "set-status",
         status: "ready_for_pickup",
-        allPicked: false,
+        allItemIds: ["line-1"],
       }),
     ).toEqual(processing);
+  });
+
+  it("requires every demo line before it becomes ready for pickup", () => {
+    const allItemIds = ["demo-line-1", "demo-line-2"];
+    const processing = demoOrderReducer(undefined, {
+      type: "set-status",
+      status: "processing",
+      allItemIds,
+    });
+    const firstPicked = demoOrderReducer(processing, {
+      type: "toggle-item",
+      itemId: "demo-line-1",
+    });
+
     expect(
-      demoOrderReducer(processing, {
+      demoOrderReducer(firstPicked, {
         type: "set-status",
         status: "ready_for_pickup",
-      } as never),
-    ).toEqual(processing);
+        allItemIds,
+      }),
+    ).toEqual(firstPicked);
+
+    const allPicked = demoOrderReducer(firstPicked, {
+      type: "toggle-item",
+      itemId: "demo-line-2",
+    });
+    expect(
+      demoOrderReducer(allPicked, {
+        type: "set-status",
+        status: "ready_for_pickup",
+        allItemIds,
+      }).status,
+    ).toBe("ready_for_pickup");
   });
 
   it("rejects malformed hydrated statuses", () => {
