@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { buildCatalogHref } from "@/lib/catalog-query";
 import type { CatalogQuery, CatalogSearchResult, Category } from "@/lib/types";
 import { CatalogFilterPanel } from "./catalog-filter-panel";
+import { CatalogPagination } from "./catalog-pagination";
 import { ProductCard } from "./product-card";
 
 export function CatalogView({
@@ -157,6 +158,7 @@ export function CatalogView({
             <ProductCard key={product.id} product={product} eager={index < 8} />
           ))}
         </div>
+        <CatalogPagination pathname={pathname} query={query} pageCount={result.pageCount} />
         {result.items.length === 0 && (
           <div className="empty-state">
             <h2>Keine Produkte gefunden</h2>

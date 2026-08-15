@@ -187,6 +187,21 @@
 .empty-state .button {
   margin-top: 18px;
 }
+
+.catalog-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.catalog-pagination a,
+.catalog-pagination span {
+  padding: 0.65rem 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: 0.35rem;
+}
 .search-results {
   padding-top: 20px;
 }
