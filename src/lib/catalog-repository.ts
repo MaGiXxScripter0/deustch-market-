@@ -1,7 +1,7 @@
 import { unstable_cache } from "next/cache";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { categories as fallbackCategories, products as fallbackProducts } from "./catalog-data";
-import { createClient, createPublicClient } from "./supabase/server";
+import { createClient, createPublicClient, hasSupabaseConfig } from "./supabase/server";
 import { siteConfig } from "./site-config";
 import type { Database } from "./supabase/database.types";
 import type { Category, Product } from "./types";
@@ -65,6 +65,20 @@ async function readCatalog(): Promise<CatalogData> {
     return { categories: fallbackCategories, products: fallbackProducts, source: "demo" };
 
   return queryCatalog(supabase);
+}
+
+async function readPublicCategories(): Promise<Category[]> {
+  const supabase = createPublicClient();
+  if (!supabase) return fallbackCategories;
+
+  const { data, error } = await supabase
+    .from("categories")
+    .select("id, slug, name_de, description_de, sort_order, filter_config")
+    .eq("is_active", true)
+    .order("sort_order");
+
+  if (error || !data?.length) return fallbackCategories;
+  return mapCatalogRows(data as DatabaseCategory[], []).categories;
 }
 
 async function queryCatalog(supabase: SupabaseClient<Database>): Promise<CatalogData> {
@@ -153,6 +167,16 @@ export const getCatalogData = unstable_cache(readCatalog, ["catalog-v4"], {
   revalidate: 900,
   tags: ["catalog"],
 });
+
+const getCachedPublicCategories = unstable_cache(readPublicCategories, ["public-categories-v1"], {
+  revalidate: 900,
+  tags: ["catalog"],
+});
+
+export function getPublicCategories() {
+  if (!hasSupabaseConfig) return Promise.resolve(fallbackCategories);
+  return getCachedPublicCategories();
+}
 
 export async function getAdminCatalogData(): Promise<CatalogData> {
   const supabase = await createClient();

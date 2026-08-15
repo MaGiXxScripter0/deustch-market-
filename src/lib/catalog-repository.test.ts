@@ -1,7 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { mapCatalogRows } from "./catalog-repository";
+import { getPublicCategories, mapCatalogRows } from "./catalog-repository";
 
 describe("catalog repository", () => {
+  it("loads public categories without requiring the product catalog in demo mode", async () => {
+    const categories = await getPublicCategories();
+
+    expect(categories.length).toBeGreaterThan(0);
+    expect(categories.every((category) => category.slug && category.name)).toBe(true);
+  });
+
   it("keeps a product without a category in the catalog", () => {
     const catalog = mapCatalogRows(
       [
