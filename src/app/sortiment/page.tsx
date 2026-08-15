@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { CatalogView } from "@/components/catalog-view";
+import { CatalogCategoryResults } from "@/components/catalog-category-results";
 import { JsonLd } from "@/components/json-ld";
 import { parseCatalogQuery } from "@/lib/catalog-query";
 import { searchCatalog } from "@/lib/catalog-search";
@@ -47,6 +48,7 @@ export default async function SortimentPage({
           {siteConfig.storeName}.
         </p>
       </div>
+      <CatalogCategoryResults hits={result.facets.categories} query={query} />
       <Suspense fallback={<div className="loading-card">Sortiment wird geladen …</div>}>
         <CatalogView pathname="/sortiment" query={query} result={result} categories={categories} />
       </Suspense>
