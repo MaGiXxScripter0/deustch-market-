@@ -29,13 +29,14 @@ export function CatalogView({
   const activeSpecs = Object.entries(query.specs).flatMap(([key, values]) =>
     values.map((value) => `${key}:${value}`),
   );
-  const categoryFilter = activeCategory ?? query.category ?? "";
+  const categoryFilter = query.category ?? "";
+  const scopedCategory = activeCategory ?? categoryFilter;
   const availability = query.availability ?? "";
   const minPrice = query.minPrice?.toString() ?? "";
   const maxPrice = query.maxPrice?.toString() ?? "";
   const sort = query.sort;
   const activeCategoryData = categories.find(
-    (category) => category.slug === (activeCategory ?? categoryFilter),
+    (category) => category.slug === scopedCategory,
   );
 
   const specFacets = useMemo(
