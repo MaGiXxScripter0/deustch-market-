@@ -25,6 +25,16 @@
   .account-actions {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+  .account-overview-grid,
+  .account-support-grid {
+    grid-template-columns: 1fr;
+  }
+  .account-dashboard-frame {
+    grid-template-columns: 164px minmax(0, 1fr);
+  }
+  .account-security-grid {
+    grid-template-columns: minmax(220px, 0.72fr) minmax(0, 1.28fr);
+  }
 }
 
 @media (max-width: 700px) {
@@ -65,6 +75,96 @@
   }
   .profile-form {
     grid-template-columns: 1fr;
+  }
+  .account-overview-grid,
+  .account-support-grid,
+  .account-security-grid,
+  .order-self-service {
+    grid-template-columns: 1fr;
+  }
+  .account-page {
+    width: min(100% - 28px, 760px);
+    padding-top: 14px;
+  }
+  .account-dashboard-frame {
+    display: block;
+    min-height: 0;
+  }
+  .account-sidebar {
+    gap: 14px;
+    padding: 14px;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .account-sidebar-brand {
+    padding-inline: 4px;
+  }
+  .account-sidebar-nav {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .account-sidebar-nav a,
+  .account-sidebar-signout button {
+    justify-content: center;
+    padding-inline: 6px;
+    font-size: 11px;
+  }
+  .account-sidebar-nav a span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .account-sidebar-nav a.is-active {
+    border-left-width: 1px;
+    padding-left: 6px;
+  }
+  .account-sidebar-signout {
+    margin-top: 0;
+    padding-top: 0;
+    border-top: 0;
+  }
+  .account-dashboard-content {
+    padding: 20px 16px 0;
+  }
+  .account-dashboard-content .account-head h1 {
+    font-size: 34px;
+  }
+  .account-security-grid .account-security-status {
+    grid-row: auto;
+  }
+  .account-security-grid > .account-panel:nth-child(2) .account-form,
+  .account-security-grid > .account-panel:nth-child(3) .account-form {
+    grid-template-columns: 1fr;
+  }
+  .account-security-grid > .account-panel:nth-child(3) .account-form .button,
+  .account-security-grid > .account-panel:nth-child(3) .account-form .form-error,
+  .account-security-grid > .account-panel:nth-child(3) .account-form .form-success {
+    grid-column: auto;
+  }
+  .account-data-list.compact {
+    grid-template-columns: 1fr;
+  }
+  .account-order-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .account-order-row > span:nth-child(2),
+  .account-order-row > strong {
+    text-align: left;
+  }
+  .account-order-row > svg {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+  }
+  .order-timeline {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .order-self-service .button,
+  .order-cancel-area,
+  .order-cancel-confirm form {
+    width: 100%;
+  }
+  .order-cancel-confirm > div {
+    display: grid;
   }
   .admin-category-list.editable > details > summary {
     min-width: 720px;
@@ -151,7 +251,11 @@
     font-weight: 800;
   }
   .catalog-toolbar {
+    grid-template-columns: minmax(0, 1fr) auto;
     margin-top: 22px;
+  }
+  .catalog-toolbar-search {
+    grid-column: 1 / -1;
   }
   .catalog-toolbar label {
     align-items: flex-start;

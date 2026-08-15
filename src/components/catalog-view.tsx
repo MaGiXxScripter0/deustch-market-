@@ -1,9 +1,9 @@
 "use client";
 
-import { SlidersHorizontal, X } from "lucide-react";
-import { useMemo, useState } from "react";
+import { Search, SlidersHorizontal, X } from "lucide-react";
+import { type FormEvent, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { filterProducts } from "@/lib/catalog";
+import { filterProducts, getCategoryProducts, getBrands } from "@/lib/catalog";
 import type { Category, Product } from "@/lib/types";
 import { CatalogFilterPanel } from "./catalog-filter-panel";
 import { ProductCard } from "./product-card";
@@ -11,19 +11,18 @@ import { ProductCard } from "./product-card";
 export function CatalogView({
   initialProducts,
   categories,
-  brands,
   activeCategory,
   initialQuery,
 }: {
   initialProducts: Product[];
   categories: Category[];
-  brands: string[];
   activeCategory?: string;
   initialQuery?: string;
 }) {
   const router = useRouter();
   const params = useSearchParams();
   const [mobileFilters, setMobileFilters] = useState(false);
+  const query = params.get("q") ?? initialQuery ?? "";
   const activeBrands = params.getAll("brand");
   const activeSpecs = params.getAll("spec");
   const categoryFilter = params.get("category") ?? "";
@@ -34,6 +33,11 @@ export function CatalogView({
   const activeCategoryData = categories.find(
     (category) => category.slug === (activeCategory ?? categoryFilter),
   );
+  const selectedCategory = (activeCategory ?? categoryFilter) || undefined;
+  const categoryProducts = useMemo(
+    () => getCategoryProducts(selectedCategory, initialProducts),
+    [selectedCategory, initialProducts],
+  );
 
   const specFacets = useMemo(
     () =>
@@ -41,15 +45,23 @@ export function CatalogView({
         key,
         values: [
           ...new Set(
-            initialProducts
+            categoryProducts
               .map((product) => product.specs[key])
               .filter((value): value is string | number | boolean => value !== undefined)
               .map(String),
           ),
         ].sort((a, b) => a.localeCompare(b, "de", { numeric: true })),
       })),
-    [activeCategoryData, initialProducts],
+    [activeCategoryData, categoryProducts],
   );
+
+  const visibleBrands = useMemo(() => getBrands(categoryProducts), [categoryProducts]);
+
+  const submitSearch = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const value = String(new FormData(event.currentTarget).get("q") ?? "").trim();
+    setParam("q", value || undefined);
+  };
 
   const setParam = (name: string, value?: string, multi = false) => {
     const next = new URLSearchParams(params.toString());
@@ -81,8 +93,8 @@ export function CatalogView({
     });
     return filterProducts(
       {
-        q: initialQuery,
-        category: categoryFilter || undefined,
+        q: query,
+        category: (activeCategory ?? categoryFilter) || undefined,
         brands: activeBrands,
         availability: availability ? "pickup" : undefined,
         minPrice: minPrice ? Number(minPrice) : undefined,
@@ -96,8 +108,9 @@ export function CatalogView({
   }, [
     initialProducts,
     categories,
-    initialQuery,
+    query,
     categoryFilter,
+    activeCategory,
     activeBrands,
     activeSpecs,
     availability,
@@ -131,7 +144,7 @@ export function CatalogView({
           availability={availability}
           minPrice={minPrice}
           maxPrice={maxPrice}
-          brands={brands}
+          brands={visibleBrands}
           specFacets={specFacets}
           resultCount={visible.length}
           hasFilters={hasFilters}
@@ -142,6 +155,31 @@ export function CatalogView({
       </div>
       <div className="catalog-results">
         <div className="catalog-toolbar">
+          <form
+            className="catalog-toolbar-search"
+            key={query}
+            role="search"
+            onSubmit={submitSearch}
+          >
+            <Search size={16} aria-hidden="true" />
+            <label className="sr-only" htmlFor="catalog-toolbar-search">
+              Produkte suchen
+            </label>
+            <input
+              id="catalog-toolbar-search"
+              name="q"
+              type="search"
+              defaultValue={query}
+              placeholder={
+                activeCategory ? "Produkt suchen" : "Produkt, Kategorie oder Artikelnummer"
+              }
+            />
+            {query && (
+              <button type="button" onClick={() => setParam("q")} aria-label="Suche löschen">
+                <X size={14} />
+              </button>
+            )}
+          </form>
           <p>
             <strong>{visible.length}</strong> Produkte
           </p>
@@ -160,7 +198,8 @@ export function CatalogView({
             {categoryFilter && (
               <button type="button" onClick={() => setParam("category")}>
                 {categories.find((category) => category.slug === categoryFilter)?.shortName ??
-                  categoryFilter} <X size={13} />
+                  categoryFilter}{" "}
+                <X size={13} />
               </button>
             )}
             {activeBrands.map((brand) => (

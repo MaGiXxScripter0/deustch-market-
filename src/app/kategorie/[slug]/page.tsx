@@ -4,7 +4,6 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { CatalogView } from "@/components/catalog-view";
 import { JsonLd } from "@/components/json-ld";
-import { getBrands } from "@/lib/catalog";
 import { getCatalogData } from "@/lib/catalog-repository";
 import { siteConfig } from "@/lib/site-config";
 
@@ -67,7 +66,6 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
         <CatalogView
           initialProducts={items}
           categories={categories}
-          brands={getBrands(items)}
           activeCategory={slug}
         />
       </Suspense>

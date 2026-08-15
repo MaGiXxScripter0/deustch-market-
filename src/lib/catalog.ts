@@ -86,6 +86,23 @@ export function searchProducts(
     .map((entry) => entry.product);
 }
 
+export function filterCategories(query: string, categoryItems = categories) {
+  const normalizedQuery = normalizeSearch(query);
+  if (!normalizedQuery) return categoryItems;
+  return categoryItems.filter((category) =>
+    normalizeSearch(`${category.name} ${category.shortName} ${category.description}`).includes(
+      normalizedQuery,
+    ),
+  );
+}
+
+export function getCategoryProducts(
+  category: string | undefined,
+  productItems: Product[] = products,
+) {
+  return category ? productItems.filter((item) => item.categorySlug === category) : productItems;
+}
+
 export function filterProducts(
   filters: CatalogFilters,
   productItems: Product[] = products,

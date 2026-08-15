@@ -36,7 +36,6 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         <p className="admin-nav-label">Arbeitsbereich</p>
         <AdminNavigation />
         <div className="admin-nav-footer">
-          <span><i aria-hidden="true" />System bereit</span>
           <Link href="/">
             <Store aria-hidden="true" /> Zum Shop <ArrowUpRight aria-hidden="true" />
           </Link>

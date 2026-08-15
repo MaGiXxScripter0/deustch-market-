@@ -1,4 +1,4 @@
-export type TurnstileAction = "signup" | "login" | "checkout";
+export type TurnstileAction = "signup" | "login" | "checkout" | "resend-signup";
 
 type TurnstileResponse = {
   success?: boolean;

@@ -108,7 +108,6 @@ export default async function AdminPage() {
           <p>Behalte Bestand und Abholaufträge von {siteConfig.storeName} im Blick.</p>
         </div>
         <div className="admin-hero-actions">
-          <span className="admin-live-status"><i aria-hidden="true" /> Live-Daten</span>
           <Link className="button primary" href="/admin/anfragen">
             Abholungen öffnen <ArrowRight aria-hidden="true" />
           </Link>

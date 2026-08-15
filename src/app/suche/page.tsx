@@ -3,7 +3,6 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { CatalogView } from "@/components/catalog-view";
 import { findSearchCorrection, searchProducts } from "@/lib/catalog";
-import { getBrands } from "@/lib/catalog";
 import { getCatalogData } from "@/lib/catalog-repository";
 import { siteConfig } from "@/lib/site-config";
 
@@ -46,7 +45,6 @@ export default async function SearchPage({
         <CatalogView
           initialProducts={products}
           categories={categories}
-          brands={getBrands(products)}
           initialQuery={query}
         />
       </Suspense>

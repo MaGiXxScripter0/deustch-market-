@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { AuthForm } from "@/components/auth-form";
+import { ConfirmationResendForm } from "@/components/confirmation-resend-form";
 import { signUpAction } from "@/lib/actions";
 import { siteConfig } from "@/lib/site-config";
 
@@ -13,6 +14,7 @@ export default function SignupPage() {
         <h1>Ihr Projektkonto.</h1>
         <p>Speichern Sie Ihre Kontaktdaten und verfolgen Sie den Stand Ihrer Bestellungen.</p>
         <AuthForm action={signUpAction} mode="signup" />
+        <ConfirmationResendForm />
         <p className="auth-footnote">
           Bereits registriert? <Link href="/konto/anmelden">Jetzt anmelden</Link>
         </p>

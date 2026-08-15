@@ -43,7 +43,6 @@ export function SearchAutocomplete({ initialValue = "" }: { initialValue?: strin
         <label className="sr-only" htmlFor="global-search">
           Produkte suchen
         </label>
-        <Search size={18} aria-hidden="true" />
         <input
           id="global-search"
           name="q"
@@ -64,7 +63,8 @@ export function SearchAutocomplete({ initialValue = "" }: { initialValue?: strin
           </button>
         )}
         <button className="search-submit" type="submit">
-          Suchen
+          <Search size={18} aria-hidden="true" />
+          <span className="sr-only">Suchen</span>
         </button>
       </form>
       {focused && query.trim().length >= 2 && items.length > 0 && (

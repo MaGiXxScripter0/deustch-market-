@@ -435,6 +435,10 @@ export type Database = {
     };
     Functions: {
       array_to_search_text: { Args: { value: string[] }; Returns: string };
+      cancel_own_pickup_order: {
+        Args: { p_request_id: string };
+        Returns: undefined;
+      };
       get_pickup_order_tracking: {
         Args: { p_pickup_code: string; p_request_number: string };
         Returns: Json;
@@ -492,6 +496,10 @@ export type Database = {
       };
       set_pickup_item_picked: {
         Args: { p_picked: boolean; p_request_item_id: string };
+        Returns: undefined;
+      };
+      reschedule_own_pickup_order: {
+        Args: { p_pickup_slot_start: string; p_request_id: string };
         Returns: undefined;
       };
     };

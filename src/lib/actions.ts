@@ -130,6 +130,61 @@ export async function signOutAction() {
   redirect("/");
 }
 
+export async function updateRequestStatusAction(formData: FormData) {
+  const auth = await getCurrentProfile();
+  if (auth?.profile?.role !== "admin") return;
+  const id = String(formData.get("id") ?? "");
+  const status = z
+    .enum(["new", "processing", "ready_for_pickup", "completed", "cancelled"])
+    .safeParse(formData.get("status"));
+  if (!status.success) return;
+  const supabase = await createClient();
+  if (!supabase) return;
+  const { data: request } = await supabase
+    .from("requests")
+    .select("status, request_items(quantity, picked_qty)")
+    .eq("id", id)
+    .maybeSingle();
+  if (!request) return;
+  const allowedStatuses: Record<string, string[]> = {
+    new: ["new", "processing", "cancelled"],
+    processing: ["processing", "ready_for_pickup", "cancelled"],
+    ready_for_pickup: ["ready_for_pickup", "completed", "cancelled"],
+    completed: ["completed"],
+    cancelled: ["cancelled"],
+  };
+  if (!allowedStatuses[request.status]?.includes(status.data)) return;
+  const allPicked = (request.request_items ?? []).every(
+    (item) => Number(item.picked_qty) >= Number(item.quantity),
+  );
+  if (status.data === "ready_for_pickup" && !allPicked) return;
+  await supabase.rpc("set_pickup_order_status", { p_request_id: id, p_status: status.data });
+  revalidatePath("/admin/anfragen");
+  revalidatePath(`/admin/anfragen/${id}`);
+  revalidatePath("/konto/anfragen");
+}
+
+export async function setPickupItemPickedAction(formData: FormData) {
+  const auth = await getCurrentProfile();
+  if (auth?.profile?.role !== "admin") return;
+  const parsed = z
+    .object({ itemId: z.uuid(), requestId: z.uuid(), picked: z.enum(["true", "false"]) })
+    .safeParse({
+      itemId: formData.get("itemId"),
+      requestId: formData.get("requestId"),
+      picked: formData.get("picked"),
+    });
+  if (!parsed.success) return;
+  const supabase = await createClient();
+  if (!supabase) return;
+  await supabase.rpc("set_pickup_item_picked", {
+    p_request_item_id: parsed.data.itemId,
+    p_picked: parsed.data.picked === "true",
+  });
+  revalidatePath(`/admin/anfragen/${parsed.data.requestId}`);
+  revalidatePath("/admin/anfragen");
+}
+
 export async function updateProfileAction(
   _: ActionState,
   formData: FormData,
@@ -455,14 +510,25 @@ export async function saveProductAction(_: ActionState, formData: FormData): Pro
       .map((item) => item.trim())
       .filter(Boolean),
   };
-  const { error } = parsed.data.id
-    ? await supabase.from("products").update(productValues).eq("id", productId)
-    : await supabase.from("products").insert({
-        id: productId,
-        ...productValues,
-        is_active: true,
-      });
+  const { data: savedProduct, error } = parsed.data.id
+    ? await supabase
+        .from("products")
+        .update(productValues)
+        .eq("id", productId)
+        .select("id")
+        .maybeSingle()
+    : await supabase
+        .from("products")
+        .insert({
+          id: productId,
+          ...productValues,
+          is_active: true,
+        })
+        .select("id")
+        .single();
   if (error) return { error: `Speichern fehlgeschlagen: ${error.message}` };
+  if (!savedProduct)
+    return { error: "Das Produkt wurde nicht gefunden oder kann nicht bearbeitet werden." };
 
   if (parsed.data.imageUrl) {
     const { error: imageError } = await supabase.from("product_images").upsert(
@@ -481,20 +547,44 @@ export async function saveProductAction(_: ActionState, formData: FormData): Pro
     .from("locations")
     .select("id, slug")
     .eq("slug", siteConfig.pickupLocationSlug);
-  if (locations.data?.length) {
-    const { error: inventoryError } = await supabase.from("inventory").upsert(
-      locations.data.map((location) => ({
-        product_id: productId,
-        location_id: location.id,
-        available_qty: parsed.data.berlinStock,
-        pickup_available: true,
-        delivery_available: false,
-        lead_time_de: "Abholbereit in 2 Stunden",
-      })),
-    );
-    if (inventoryError)
-      return { error: `Bestand konnte nicht gespeichert werden: ${inventoryError.message}` };
+  let pickupLocations = locations.data ?? [];
+  if (!locations.error && !pickupLocations.length) {
+    const { data: legacyLocations, error: legacyLocationError } = await supabase
+      .from("locations")
+      .select("id")
+      .eq("slug", "berlin-mitte");
+    if (legacyLocationError) return { error: "Abholort konnte nicht gelesen werden." };
+    const legacyLocation = legacyLocations?.[0];
+    if (legacyLocation) {
+      const { data: renamedLocation, error: renameError } = await supabase
+        .from("locations")
+        .update({
+          slug: siteConfig.pickupLocationSlug,
+          name_de: siteConfig.pickupLocationName,
+          address_de: siteConfig.address,
+        })
+        .eq("id", legacyLocation.id)
+        .select("id, slug")
+        .maybeSingle();
+      if (renameError || !renamedLocation)
+        return { error: "Abholort Nassau konnte nicht eingerichtet werden." };
+      pickupLocations = [renamedLocation];
+    }
   }
+  if (locations.error || !pickupLocations.length)
+    return { error: `Abholort ${siteConfig.storeName} wurde nicht gefunden.` };
+  const { error: inventoryError } = await supabase.from("inventory").upsert(
+    pickupLocations.map((location) => ({
+      product_id: productId,
+      location_id: location.id,
+      available_qty: parsed.data.berlinStock,
+      pickup_available: true,
+      delivery_available: false,
+      lead_time_de: "Abholbereit in 2 Stunden",
+    })),
+  );
+  if (inventoryError)
+    return { error: `Bestand konnte nicht gespeichert werden: ${inventoryError.message}` };
   revalidatePath("/sortiment");
   revalidatePath("/admin/produkte");
   updateTag("catalog");

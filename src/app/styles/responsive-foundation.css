@@ -8,22 +8,25 @@
   }
   .mobile-theme-toggle {
     position: absolute;
-    top: 21px;
+    top: 18px;
     right: 59px;
     display: inline-flex;
-    min-height: 30px;
-    padding: 0 8px;
-  }
-  .mobile-theme-toggle span {
-    display: none;
+    width: 34px;
+    height: 34px;
+    min-height: 34px;
+    justify-content: center;
+    padding: 0;
   }
   .mobile-menu-button {
     position: absolute;
     top: 18px;
     right: 14px;
+    width: 34px;
+    height: 34px;
     display: grid;
     place-items: center;
     border: 0;
+    padding: 0;
     background: transparent;
   }
   .mobile-nav {

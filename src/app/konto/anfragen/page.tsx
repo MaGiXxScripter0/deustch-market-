@@ -2,17 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { euro } from "@/lib/catalog";
+import { isPickupOrderStatus, ORDER_STATUS_LABELS } from "@/lib/account";
+import { AccountDashboardShell } from "@/components/account-dashboard-shell";
 import { createClient, getCurrentProfile } from "@/lib/supabase/server";
 import { siteConfig } from "@/lib/site-config";
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: `Meine Bestellungen | ${siteConfig.name}` };
-const labels: Record<string, string> = {
-  new: "Bestellung eingegangen",
-  processing: "Wird zusammengestellt",
-  ready_for_pickup: "Abholbereit",
-  completed: "Abgeholt",
-  cancelled: "Storniert",
-};
 export default async function AccountRequestsPage() {
   const auth = await getCurrentProfile();
   if (!auth) redirect("/konto/anmelden");
@@ -22,11 +17,12 @@ export default async function AccountRequestsPage() {
         .from("requests")
         .select("id, request_number, status, subtotal, fulfillment, created_at, pickup_slot_start")
         .eq("user_id", auth.user.id)
+        .eq("fulfillment", "pickup")
         .order("created_at", { ascending: false })
     : { data: null };
   const rows = data ?? [];
   return (
-    <main className="shell page-main">
+    <AccountDashboardShell isAdmin={auth.profile?.role === "admin"}>
       <div className="page-hero compact">
         <p className="breadcrumbs">
           <Link href="/konto">Mein Konto</Link> / Bestellungen
@@ -50,7 +46,11 @@ export default async function AccountRequestsPage() {
                   : `Abholung ${siteConfig.storeName}`}
               </p>
               <strong>{euro.format(Number(row.subtotal))}</strong>
-              <b data-status={row.status}>{labels[row.status] ?? row.status}</b>
+              <b data-status={row.status}>
+                {isPickupOrderStatus(row.status)
+                  ? ORDER_STATUS_LABELS[row.status]
+                  : "Unbekannter Status"}
+              </b>
             </article>
           ))}
         </div>
@@ -63,6 +63,6 @@ export default async function AccountRequestsPage() {
           </Link>
         </div>
       )}
-    </main>
+    </AccountDashboardShell>
   );
 }

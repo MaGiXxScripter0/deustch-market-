@@ -3,7 +3,6 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { CatalogView } from "@/components/catalog-view";
 import { JsonLd } from "@/components/json-ld";
-import { getBrands } from "@/lib/catalog";
 import { getCatalogData } from "@/lib/catalog-repository";
 import { siteConfig } from "@/lib/site-config";
 
@@ -42,7 +41,7 @@ export default async function SortimentPage() {
         </p>
       </div>
       <Suspense fallback={<div className="loading-card">Sortiment wird geladen …</div>}>
-        <CatalogView initialProducts={products} categories={categories} brands={getBrands()} />
+        <CatalogView initialProducts={products} categories={categories} />
       </Suspense>
     </main>
   );

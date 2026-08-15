@@ -2,12 +2,27 @@ import { describe, expect, it } from "vitest";
 import {
   calculatePackages,
   filterProducts,
+  filterCategories,
   findSearchCorrection,
+  getCategoryProducts,
   normalizeSearch,
   searchProducts,
 } from "./catalog";
 
 describe("catalog search", () => {
+  it("scopes category facets to products in the selected category", () => {
+    const scoped = getCategoryProducts("trockenbau-platten");
+
+    expect(scoped.length).toBeGreaterThan(0);
+    expect(scoped.every((product) => product.categorySlug === "trockenbau-platten")).toBe(true);
+    expect(scoped.some((product) => product.categorySlug === "holz-bauplatten")).toBe(false);
+  });
+
+  it("filters categories by name, short name, and description", () => {
+    expect(filterCategories("Trockenbau").length).toBeGreaterThan(0);
+    expect(filterCategories("OSB").length).toBeGreaterThan(0);
+  });
+
   it("normalizes German diacritics", () => {
     expect(normalizeSearch("Dämmung ÖKO")).toBe("dammung oko");
   });
@@ -38,6 +53,23 @@ describe("catalog search", () => {
           product.price <= 30,
       ),
     ).toBe(true);
+  });
+
+  it("applies search within the selected category", () => {
+    const results = filterProducts({
+      q: "platte",
+      category: "holz-bauplatten",
+    });
+
+    expect(results.map((product) => product.slug)).toEqual(
+      expect.arrayContaining([
+        "osb3-verlegeplatte-18",
+        "osb3-verlegeplatte-22",
+        "multiplexplatte-birke-15",
+        "kvh-fichte-60x80",
+      ]),
+    );
+    expect(results.every((product) => product.categorySlug === "holz-bauplatten")).toBe(true);
   });
 
   it("combines category-specific facets with OR inside one facet", () => {

@@ -299,3 +299,188 @@
 .request-detail-total strong {
   font-size: 24px;
 }
+
+.account-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+.account-head-actions button,
+.account-head-link {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  color: var(--muted);
+  font-weight: 750;
+  text-decoration: none;
+}
+.account-signout button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.account-form input,
+.confirmation-resend-form input,
+.order-reschedule-form input {
+  min-height: 44px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  font: inherit;
+}
+.account-form .button,
+.confirmation-resend-form .button {
+  min-height: 44px;
+  justify-self: start;
+}
+.confirmation-resend-form {
+  margin-top: 30px;
+  padding-top: 24px;
+  border-top: 1px solid var(--line);
+}
+.confirmation-resend-form h2 {
+  margin: 0;
+  font-size: 17px;
+}
+.confirmation-resend-form p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.account-status-confirmed {
+  color: var(--ink);
+}
+.account-status-warning,
+.account-status-pending {
+  color: var(--accent);
+}
+.order-timeline {
+  margin: 18px 0 24px;
+  padding: 18px 22px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  list-style: none;
+  border: 1px solid var(--line);
+  background: var(--white);
+}
+.order-timeline li {
+  display: flex;
+  gap: 9px;
+  align-items: flex-start;
+  min-width: 0;
+  color: var(--muted);
+  font-size: 11px;
+}
+.order-timeline li.is-complete {
+  color: var(--ink);
+}
+.order-timeline-marker {
+  width: 24px;
+  height: 24px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  font-size: 11px;
+}
+.order-timeline li.is-complete .order-timeline-marker {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--white);
+}
+.order-timeline li strong,
+.order-timeline li small {
+  display: block;
+}
+.order-timeline li small {
+  margin-top: 3px;
+  color: var(--muted);
+}
+.order-timeline-cancelled {
+  display: flex;
+  gap: 10px;
+  margin: 18px 0 24px;
+  padding: 16px 22px;
+  border: 1px solid var(--accent);
+  background: var(--paper);
+}
+.order-timeline-cancelled span {
+  color: var(--muted);
+}
+.order-self-service {
+  margin: 24px 0;
+  padding: 22px;
+  display: grid;
+  grid-template-columns: minmax(200px, 0.7fr) minmax(240px, 1fr) minmax(180px, 0.7fr);
+  gap: 20px;
+  align-items: start;
+  border: 1px solid var(--line);
+  background: var(--paper);
+}
+.order-self-service h2 {
+  margin: 6px 0;
+  font-size: 20px;
+}
+.order-self-service p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.order-reschedule-form {
+  display: grid;
+  gap: 9px;
+}
+.order-reschedule-form small {
+  color: var(--muted);
+  line-height: 1.4;
+}
+.order-reschedule-form .button {
+  min-height: 44px;
+}
+.order-cancel-area {
+  align-self: end;
+}
+.order-cancel-confirm {
+  padding: 12px;
+  border: 1px solid var(--accent);
+  background: var(--white);
+}
+.order-cancel-confirm > p {
+  color: var(--ink);
+}
+.order-cancel-confirm > div {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+.order-cancel-confirm form {
+  display: inline-flex;
+}
+.button.danger-outline,
+.button.danger {
+  min-height: 44px;
+}
+.button.danger-outline {
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  background: transparent;
+}
+.button.danger {
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: var(--white);
+}
+.order-self-service-locked {
+  margin: 24px 0;
+  padding: 16px 22px;
+  border: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
