@@ -1,7 +1,6 @@
 "use client";
 
 import { X } from "lucide-react";
-import Link from "next/link";
 import type { Category, Product } from "@/lib/types";
 
 export type SpecFacet = { key: string; values: string[] };
@@ -12,6 +11,7 @@ export function CatalogFilterPanel({
   initialProducts,
   categories,
   activeCategory,
+  categoryFilter,
   activeBrands,
   activeSpecs,
   availability,
@@ -28,6 +28,7 @@ export function CatalogFilterPanel({
   initialProducts: Product[];
   categories: Category[];
   activeCategory?: string;
+  categoryFilter: string;
   activeBrands: string[];
   activeSpecs: string[];
   availability: string;
@@ -52,18 +53,33 @@ export function CatalogFilterPanel({
       {!activeCategory && (
         <fieldset>
           <legend>Kategorie</legend>
+          <FilterChoice
+            type="radio"
+            name="category"
+            checked={!categoryFilter}
+            onChange={() => setParam("category")}
+            label="Alle Kategorien"
+          />
           {categories.map((category) => (
-            <Link
-              className="filter-category"
+            <FilterChoice
               key={category.slug}
-              href={`/kategorie/${category.slug}`}
-            >
-              {category.shortName}
-              <span>
-                {initialProducts.filter((item) => item.categorySlug === category.slug).length}
-              </span>
-            </Link>
+              type="radio"
+              name="category"
+              checked={categoryFilter === category.slug}
+              onChange={() => setParam("category", category.slug)}
+              label={category.shortName}
+              count={initialProducts.filter((item) => item.categorySlug === category.slug).length}
+            />
           ))}
+        </fieldset>
+      )}
+      {activeCategory && (
+        <fieldset>
+          <legend>Kategorie</legend>
+          <label className="filter-category filter-category-active">
+            {categories.find((category) => category.slug === activeCategory)?.shortName ??
+              activeCategory}
+          </label>
         </fieldset>
       )}
       <fieldset>

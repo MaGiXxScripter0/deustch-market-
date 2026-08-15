@@ -13,22 +13,27 @@ export function CatalogView({
   categories,
   brands,
   activeCategory,
+  initialQuery,
 }: {
   initialProducts: Product[];
   categories: Category[];
   brands: string[];
   activeCategory?: string;
+  initialQuery?: string;
 }) {
   const router = useRouter();
   const params = useSearchParams();
   const [mobileFilters, setMobileFilters] = useState(false);
   const activeBrands = params.getAll("brand");
   const activeSpecs = params.getAll("spec");
+  const categoryFilter = params.get("category") ?? "";
   const availability = params.get("availability") ?? "";
   const minPrice = params.get("minPrice") ?? "";
   const maxPrice = params.get("maxPrice") ?? "";
   const sort = params.get("sort") ?? "featured";
-  const activeCategoryData = categories.find((category) => category.slug === activeCategory);
+  const activeCategoryData = categories.find(
+    (category) => category.slug === (activeCategory ?? categoryFilter),
+  );
 
   const specFacets = useMemo(
     () =>
@@ -60,6 +65,12 @@ export function CatalogView({
     router.push(`?${next.toString()}`, { scroll: false });
   };
 
+  const resetFilters = () => {
+    const next = new URLSearchParams();
+    if (initialQuery) next.set("q", initialQuery);
+    router.push(next.toString() ? `?${next.toString()}` : "?", { scroll: false });
+  };
+
   const visible = useMemo(() => {
     const specs: Record<string, string[]> = {};
     activeSpecs.forEach((selection) => {
@@ -70,6 +81,8 @@ export function CatalogView({
     });
     return filterProducts(
       {
+        q: initialQuery,
+        category: categoryFilter || undefined,
         brands: activeBrands,
         availability: availability ? "pickup" : undefined,
         minPrice: minPrice ? Number(minPrice) : undefined,
@@ -83,6 +96,8 @@ export function CatalogView({
   }, [
     initialProducts,
     categories,
+    initialQuery,
+    categoryFilter,
     activeBrands,
     activeSpecs,
     availability,
@@ -92,7 +107,9 @@ export function CatalogView({
   ]);
 
   const hasFilters =
-    activeBrands.length > 0 || activeSpecs.length > 0 || Boolean(availability || minPrice || maxPrice);
+    activeBrands.length > 0 ||
+    activeSpecs.length > 0 ||
+    Boolean(categoryFilter || availability || minPrice || maxPrice);
 
   return (
     <div className="catalog-layout">
@@ -108,6 +125,7 @@ export function CatalogView({
           initialProducts={initialProducts}
           categories={categories}
           activeCategory={activeCategory}
+          categoryFilter={categoryFilter}
           activeBrands={activeBrands}
           activeSpecs={activeSpecs}
           availability={availability}
@@ -119,7 +137,7 @@ export function CatalogView({
           hasFilters={hasFilters}
           setParam={setParam}
           onClose={() => setMobileFilters(false)}
-          onReset={() => router.push("?", { scroll: false })}
+          onReset={resetFilters}
         />
       </div>
       <div className="catalog-results">
@@ -139,6 +157,12 @@ export function CatalogView({
         </div>
         {hasFilters && (
           <div className="filter-chips">
+            {categoryFilter && (
+              <button type="button" onClick={() => setParam("category")}>
+                {categories.find((category) => category.slug === categoryFilter)?.shortName ??
+                  categoryFilter} <X size={13} />
+              </button>
+            )}
             {activeBrands.map((brand) => (
               <button type="button" key={brand} onClick={() => setParam("brand", brand, true)}>
                 {brand} <X size={13} />
@@ -179,7 +203,7 @@ export function CatalogView({
           <div className="empty-state">
             <h2>Keine Produkte gefunden</h2>
             <p>Entfernen Sie einzelne Filter oder setzen Sie die Auswahl vollständig zurück.</p>
-            <button className="button primary" onClick={() => router.push("?")}>
+            <button className="button primary" onClick={resetFilters}>
               Filter zurücksetzen
             </button>
           </div>
