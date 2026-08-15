@@ -3,34 +3,36 @@
 import { SlidersHorizontal, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { filterProducts } from "@/lib/catalog";
-import type { Category, Product } from "@/lib/types";
+import { buildCatalogHref } from "@/lib/catalog-query";
+import type { CatalogQuery, CatalogSearchResult, Category } from "@/lib/types";
 import { CatalogFilterPanel } from "./catalog-filter-panel";
 import { ProductCard } from "./product-card";
 
 export function CatalogView({
-  initialProducts,
+  pathname,
+  query,
+  result,
   categories,
-  brands,
   activeCategory,
-  initialQuery,
 }: {
-  initialProducts: Product[];
+  pathname: string;
+  query: CatalogQuery;
+  result: CatalogSearchResult;
   categories: Category[];
-  brands: string[];
   activeCategory?: string;
-  initialQuery?: string;
 }) {
   const router = useRouter();
   const params = useSearchParams();
   const [mobileFilters, setMobileFilters] = useState(false);
-  const activeBrands = params.getAll("brand");
-  const activeSpecs = params.getAll("spec");
-  const categoryFilter = params.get("category") ?? "";
-  const availability = params.get("availability") ?? "";
-  const minPrice = params.get("minPrice") ?? "";
-  const maxPrice = params.get("maxPrice") ?? "";
-  const sort = params.get("sort") ?? "featured";
+  const activeBrands = query.brands;
+  const activeSpecs = Object.entries(query.specs).flatMap(([key, values]) =>
+    values.map((value) => `${key}:${value}`),
+  );
+  const categoryFilter = activeCategory ?? query.category ?? "";
+  const availability = query.availability ?? "";
+  const minPrice = query.minPrice?.toString() ?? "";
+  const maxPrice = query.maxPrice?.toString() ?? "";
+  const sort = query.sort;
   const activeCategoryData = categories.find(
     (category) => category.slug === (activeCategory ?? categoryFilter),
   );
@@ -41,70 +43,26 @@ export function CatalogView({
         key,
         values: [
           ...new Set(
-            initialProducts
+            result.items
               .map((product) => product.specs[key])
               .filter((value): value is string | number | boolean => value !== undefined)
               .map(String),
           ),
         ].sort((a, b) => a.localeCompare(b, "de", { numeric: true })),
       })),
-    [activeCategoryData, initialProducts],
+    [activeCategoryData, result.items],
   );
 
   const setParam = (name: string, value?: string, multi = false) => {
-    const next = new URLSearchParams(params.toString());
-    if (multi && value) {
-      const current = next.getAll(name);
-      next.delete(name);
-      (current.includes(value)
-        ? current.filter((item) => item !== value)
-        : [...current, value]
-      ).forEach((item) => next.append(name, item));
-    } else if (value) next.set(name, value);
-    else next.delete(name);
-    router.push(`?${next.toString()}`, { scroll: false });
+    const patch = multi
+      ? { [name]: value, toggle: name as "brand" | "spec" }
+      : { [name]: value };
+    router.push(buildCatalogHref(pathname, params, patch), { scroll: false });
   };
 
   const resetFilters = () => {
-    const next = new URLSearchParams();
-    if (initialQuery) next.set("q", initialQuery);
-    router.push(next.toString() ? `?${next.toString()}` : "?", { scroll: false });
+    router.push(buildCatalogHref(pathname, params, { resetFilters: true }), { scroll: false });
   };
-
-  const visible = useMemo(() => {
-    const specs: Record<string, string[]> = {};
-    activeSpecs.forEach((selection) => {
-      const separator = selection.indexOf(":");
-      if (separator < 1) return;
-      const key = selection.slice(0, separator);
-      specs[key] = [...(specs[key] ?? []), selection.slice(separator + 1)];
-    });
-    return filterProducts(
-      {
-        q: initialQuery,
-        category: categoryFilter || undefined,
-        brands: activeBrands,
-        availability: availability ? "pickup" : undefined,
-        minPrice: minPrice ? Number(minPrice) : undefined,
-        maxPrice: maxPrice ? Number(maxPrice) : undefined,
-        specs,
-        sort: sort as "featured" | "price-asc" | "price-desc" | "name",
-      },
-      initialProducts,
-      categories,
-    );
-  }, [
-    initialProducts,
-    categories,
-    initialQuery,
-    categoryFilter,
-    activeBrands,
-    activeSpecs,
-    availability,
-    minPrice,
-    maxPrice,
-    sort,
-  ]);
 
   const hasFilters =
     activeBrands.length > 0 ||
@@ -118,11 +76,11 @@ export function CatalogView({
         type="button"
         onClick={() => setMobileFilters(true)}
       >
-        <SlidersHorizontal size={17} /> Filter & Sortierung · {visible.length} Produkte
+        <SlidersHorizontal size={17} /> Filter & Sortierung · {result.total} Produkte
       </button>
       <div className={mobileFilters ? "filter-drawer open" : "filter-drawer"}>
         <CatalogFilterPanel
-          initialProducts={initialProducts}
+          initialProducts={result.items}
           categories={categories}
           activeCategory={activeCategory}
           categoryFilter={categoryFilter}
@@ -131,9 +89,9 @@ export function CatalogView({
           availability={availability}
           minPrice={minPrice}
           maxPrice={maxPrice}
-          brands={brands}
+          brands={result.facets.brands.map((facet) => facet.value)}
           specFacets={specFacets}
-          resultCount={visible.length}
+          resultCount={result.total}
           hasFilters={hasFilters}
           setParam={setParam}
           onClose={() => setMobileFilters(false)}
@@ -143,7 +101,7 @@ export function CatalogView({
       <div className="catalog-results">
         <div className="catalog-toolbar">
           <p>
-            <strong>{visible.length}</strong> Produkte
+            <strong>{result.total}</strong> {result.total === 1 ? "Produkt" : "Produkte"}
           </p>
           <label>
             Sortieren nach
@@ -195,11 +153,11 @@ export function CatalogView({
           </div>
         )}
         <div className="product-grid catalog-grid">
-          {visible.map((product, index) => (
+          {result.items.map((product, index) => (
             <ProductCard key={product.id} product={product} eager={index < 8} />
           ))}
         </div>
-        {visible.length === 0 && (
+        {result.items.length === 0 && (
           <div className="empty-state">
             <h2>Keine Produkte gefunden</h2>
             <p>Entfernen Sie einzelne Filter oder setzen Sie die Auswahl vollständig zurück.</p>

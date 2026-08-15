@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { CatalogView } from "@/components/catalog-view";
-import { findSearchCorrection, searchProducts } from "@/lib/catalog";
-import { getBrands } from "@/lib/catalog";
-import { getCatalogData } from "@/lib/catalog-repository";
+import { parseCatalogQuery } from "@/lib/catalog-query";
+import { searchCatalog } from "@/lib/catalog-search";
+import { getPublicCategories } from "@/lib/catalog-repository";
 import { siteConfig } from "@/lib/site-config";
 
 export const metadata: Metadata = {
@@ -16,12 +16,10 @@ export const metadata: Metadata = {
 export default async function SearchPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const query = (await searchParams).q?.trim() ?? "";
-  const { categories, products } = await getCatalogData();
-  const results = searchProducts(query, products, categories);
-  const correction = findSearchCorrection(query, products);
+  const query = parseCatalogQuery(await searchParams);
+  const [categories, result] = await Promise.all([getPublicCategories(), searchCatalog(query)]);
   return (
     <main className="shell page-main">
       <div className="page-hero search-page-hero">
@@ -29,25 +27,25 @@ export default async function SearchPage({
           <Link href="/">Startseite</Link> / Suche
         </p>
         <p className="kicker">PRODUKTSUCHE</p>
-        <h1>{query ? `Ergebnisse für „${query}”` : "Was benötigen Sie?"}</h1>
+        <h1>{query.q ? `Ergebnisse für „${query.q}”` : "Was benötigen Sie?"}</h1>
         <p>
-          {query
-            ? `${results.length} passende Produkte gefunden.`
+          {query.q
+            ? `${result.total} passende Produkte gefunden.`
             : "Suchen Sie nach Produkt, Kategorie, Marke oder Artikelnummer."}
         </p>
       </div>
-      {correction && (
+      {result.correction && (
         <div className="search-correction">
           Meinten Sie{" "}
-          <Link href={`/suche?q=${encodeURIComponent(correction)}`}>„{correction}”</Link>?
+          <Link href={`/suche?q=${encodeURIComponent(result.correction)}`}>„{result.correction}”</Link>?
         </div>
       )}
       <Suspense fallback={<div className="loading-card">Produkte werden geladen …</div>}>
         <CatalogView
-          initialProducts={products}
+          pathname="/suche"
+          query={query}
+          result={result}
           categories={categories}
-          brands={getBrands(products)}
-          initialQuery={query}
         />
       </Suspense>
     </main>

@@ -45,4 +45,12 @@ describe("catalog query", () => {
       "/suche?q=platte",
     );
   });
+
+  it("serializes page navigation while preserving filters", () => {
+    const current = new URLSearchParams("q=platte&brand=Knauf&availability=pickup");
+
+    expect(buildCatalogHref("/suche", current, { page: 2 })).toBe(
+      "/suche?q=platte&brand=Knauf&availability=pickup&page=2",
+    );
+  });
 });
