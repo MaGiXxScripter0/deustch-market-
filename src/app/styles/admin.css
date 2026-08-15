@@ -1206,6 +1206,60 @@
   text-align: center;
 }
 
+.admin-customer-detail {
+  display: grid;
+  gap: 18px;
+}
+
+.admin-customer-contact,
+.admin-customer-orders {
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--white);
+}
+
+.admin-customer-contact h2,
+.admin-customer-orders h2 {
+  margin: 0 0 12px;
+  font-size: 18px;
+}
+
+.admin-customer-contact p {
+  margin: 0;
+  line-height: 1.8;
+}
+
+.admin-customer-contact a,
+.admin-customer-orders a {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.admin-customer-contact small {
+  color: var(--muted);
+}
+
+.admin-customer-orders article {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1.3fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 14px 0;
+  border-top: 1px solid var(--line);
+  font-size: 12px;
+}
+
+.admin-customer-orders article > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.admin-customer-orders article span {
+  color: var(--muted);
+}
+
 .admin-category-list.editable > details {
   border-bottom: 1px solid var(--line);
   background: var(--white);

@@ -9,6 +9,7 @@ import {
   getAllowedStatuses,
   getPickingBlockedReason,
   normalizeAdminOrderFilters,
+  summarizeCustomerOrders,
 } from "./admin-order-workflow";
 
 describe("admin order workflow", () => {
@@ -202,5 +203,21 @@ describe("admin order workflow", () => {
       status: "all",
       sort: "newest",
     });
+  });
+
+  it("summarizes empty and mixed customer orders", () => {
+    expect(summarizeCustomerOrders([])).toEqual({
+      orderCount: 0,
+      totalSpent: 0,
+      activePickupCount: 0,
+      lastOrderAt: null,
+    });
+    expect(
+      summarizeCustomerOrders([
+        { id: "1", subtotal: 20, created_at: "2026-01-01", status: "completed" },
+        { id: "2", subtotal: 30, created_at: "2026-02-01", status: "processing" },
+        { id: "3", subtotal: 10, created_at: "2026-03-01", status: "cancelled" },
+      ]),
+    ).toEqual({ orderCount: 3, totalSpent: 60, activePickupCount: 1, lastOrderAt: "2026-03-01" });
   });
 });

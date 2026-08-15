@@ -258,7 +258,13 @@ export default async function AdminCustomersPage({ searchParams }: { searchParam
                       <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#e8f0ea] text-[11px] font-bold text-[var(--green)]" aria-hidden="true">
                         {getInitials(profile.full_name)}
                       </span>
-                      <strong className="font-semibold">{profile.full_name || "Ohne Namen"}</strong>
+                      <Link
+                        className="font-semibold hover:text-[var(--accent)]"
+                        href={`/admin/kunden/${profile.id}`}
+                        aria-label={`Kunde ${profile.full_name || "Ohne Namen"} öffnen`}
+                      >
+                        {profile.full_name || "Ohne Namen"}
+                      </Link>
                     </div>
                   </td>
                   <td className="px-5 py-4 text-[13px] text-[var(--muted)]">{profile.phone || "—"}</td>

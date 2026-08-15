@@ -27,7 +27,7 @@ export default async function AdminRequestDetailPage({
     ? await supabase
         .from("requests")
         .select(
-          "id, request_number, status, subtotal, customer_name, customer_email, customer_phone, comment, created_at, pickup_code, pickup_slot_start, request_items(id, sku_snapshot, name_snapshot, sale_unit_snapshot, quantity, picked_qty, unit_price, line_total)",
+          "id, user_id, request_number, status, subtotal, customer_name, customer_email, customer_phone, comment, created_at, pickup_code, pickup_slot_start, request_items(id, sku_snapshot, name_snapshot, sale_unit_snapshot, quantity, picked_qty, unit_price, line_total)",
         )
         .eq("id", id)
         .maybeSingle()
@@ -133,7 +133,11 @@ export default async function AdminRequestDetailPage({
         <section>
           <h2>Kundendaten</h2>
           <p>
-            <b>{order.customer_name}</b>
+            {order.user_id ? (
+              <Link href={`/admin/kunden/${order.user_id}`}><b>{order.customer_name}</b></Link>
+            ) : (
+              <b>{order.customer_name} <small>(Gastbestellung)</small></b>
+            )}
             <br />
             <a href={`mailto:${order.customer_email}`}>{order.customer_email}</a>
             <br />

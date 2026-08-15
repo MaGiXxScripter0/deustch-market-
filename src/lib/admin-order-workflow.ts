@@ -74,6 +74,25 @@ export type DemoOrderState = {
   pickedItemIds: string[];
 };
 
+export type CustomerOrderSummary = {
+  id: string;
+  subtotal: number;
+  created_at: string;
+  status: AdminOrderStatus;
+};
+
+export function summarizeCustomerOrders(orders: CustomerOrderSummary[]) {
+  const newest = [...orders].sort((a, b) => b.created_at.localeCompare(a.created_at))[0] ?? null;
+  return {
+    orderCount: orders.length,
+    totalSpent: orders.reduce((sum, order) => sum + Number(order.subtotal), 0),
+    activePickupCount: orders.filter((order) =>
+      ["new", "processing", "ready_for_pickup"].includes(order.status),
+    ).length,
+    lastOrderAt: newest?.created_at ?? null,
+  };
+}
+
 export type DemoOrderAction =
   | { type: "toggle-item"; itemId: string }
   | { type: "set-status"; status: AdminOrderStatus; allItemIds: string[] }
