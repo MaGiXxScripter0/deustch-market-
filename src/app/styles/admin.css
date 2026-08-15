@@ -1046,6 +1046,7 @@
 }
 
 .request-admin-list .request-admin-customer-link,
+.request-admin-list .request-admin-status-stack,
 .request-admin-list .admin-order-status {
   position: relative;
   z-index: 3;
@@ -1062,6 +1063,43 @@
 
 .request-admin-customer-link:hover b {
   color: var(--accent);
+}
+
+.request-admin-progress,
+.request-admin-status-badge small {
+  display: block;
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.request-admin-status-stack {
+  display: grid;
+  gap: 8px;
+}
+
+.request-admin-status-badge,
+.admin-order-action-feedback {
+  position: relative;
+  z-index: 3;
+}
+
+.request-admin-status-badge span {
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.admin-order-action-feedback {
+  margin: 4px 0 0;
+  font-size: 11px;
+}
+
+.admin-order-action-feedback.is-error {
+  color: #a23d36;
+}
+
+.admin-order-action-feedback.is-success {
+  color: #226f43;
 }
 
 .request-admin-list article:last-child {
@@ -1204,6 +1242,18 @@
   padding: 32px 20px;
   color: var(--muted);
   text-align: center;
+}
+
+@media (max-width: 760px) {
+  .request-admin-list article {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .request-admin-list .admin-order-status,
+  .request-admin-list .request-admin-status-stack {
+    width: 100%;
+  }
 }
 
 .admin-customer-detail {

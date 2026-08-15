@@ -7,7 +7,10 @@ import { DEMO_ORDER } from "@/lib/admin-demo-data";
 import { euro } from "@/lib/catalog";
 import {
   ADMIN_ORDER_STATUSES,
+  getAdminOrderProgress,
+  getNextAdminOrderAction,
   normalizeAdminOrderFilters,
+  STATUS_LABELS,
   type AdminOrderStatus,
 } from "@/lib/admin-order-workflow";
 import { createClient, getCurrentProfile } from "@/lib/supabase/server";
@@ -36,7 +39,7 @@ export default async function AdminRequestsPage({
     subtotal: number;
     fulfillment: string;
     created_at: string;
-    request_items: ReadonlyArray<{ id: string; quantity?: number; picked_qty?: number }>;
+    request_items: ReadonlyArray<{ id: string; quantity: number; picked_qty: number }>;
   }>;
   let counts: Record<(typeof metricStatuses)[number], number> = {
     new: 0,
@@ -98,10 +101,8 @@ export default async function AdminRequestsPage({
           const status = ADMIN_ORDER_STATUSES.includes(row.status as AdminOrderStatus)
             ? (row.status as AdminOrderStatus)
             : "new";
-          const pickedCount = row.request_items.filter(
-            (item) => Number(item.picked_qty) >= Number(item.quantity),
-          ).length;
-          const allPicked = pickedCount === row.request_items.length;
+          const progress = getAdminOrderProgress(row.request_items);
+          const nextAction = getNextAdminOrderAction(status, progress.allPicked);
           return (
             <article key={row.id}>
               <Link
@@ -112,28 +113,41 @@ export default async function AdminRequestsPage({
               <div>
                 <small>{new Date(row.created_at).toLocaleDateString("de-DE")}</small>
                 <h2>{row.request_number}</h2>
-                <span>{pickedCount}/{row.request_items.length} Positionen kommissioniert</span>
+                <span className="request-admin-progress">
+                  {progress.pickedQuantity}/{progress.requiredQuantity} Artikel kommissioniert
+                </span>
               </div>
               {row.user_id ? (
                 <Link className="request-admin-customer-link" href={`/admin/kunden/${row.user_id}`}>
                   <b>{row.customer_name}</b>
                   <span>{row.customer_email}</span>
+                  <small>Kundenprofil öffnen</small>
                 </Link>
               ) : (
-                <p>
+                <Link className="request-admin-customer-link" href={`/admin/kunden/gast/${row.id}`}>
                   <b>{row.customer_name}</b>
                   <span>{row.customer_email}</span>
-                  <small>Gastbestellung</small>
-                </p>
+                  <small>Gastkontakt öffnen</small>
+                </Link>
               )}
               <strong>{euro.format(Number(row.subtotal))}</strong>
-              <AdminOrderStatusControl
-                mode={enabled ? "live" : "demo"}
-                orderId={row.id}
-                status={status}
-                allPicked={allPicked}
-                compact
-              />
+              <div className="request-admin-status-stack">
+                <div className={`request-admin-status-badge is-${status}`}>
+                  <span>{STATUS_LABELS[status]}</span>
+                  {nextAction ? (
+                    <small>Nächster Schritt: {nextAction.label}</small>
+                  ) : (
+                    <small>Kein weiterer Schritt verfügbar</small>
+                  )}
+                </div>
+                <AdminOrderStatusControl
+                  mode={enabled ? "live" : "demo"}
+                  orderId={row.id}
+                  status={status}
+                  allPicked={progress.allPicked}
+                  compact
+                />
+              </div>
             </article>
           );
         })}

@@ -124,7 +124,16 @@ function DemoAdminOrderStatusControl({ compact }: AdminOrderStatusControlProps) 
 }
 
 function StatusFeedback({ result }: { result: AdminOrderActionState }) {
-  return result.status === "idle" ? null : <p aria-live="polite">{result.message}</p>;
+  if (result.status === "idle") return null;
+  return (
+    <p
+      className={`admin-order-action-feedback is-${result.status}`}
+      role={result.status === "error" ? "alert" : "status"}
+      aria-live={result.status === "error" ? "assertive" : "polite"}
+    >
+      {result.message}
+    </p>
+  );
 }
 
 export function AdminOrderStatusControl(props: AdminOrderStatusControlProps) {
