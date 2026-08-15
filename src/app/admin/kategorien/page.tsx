@@ -1,9 +1,6 @@
-import { GripVertical, Plus } from "lucide-react";
-import {
-  AdminCategoryForm,
-  type AdminCategoryRecord,
-} from "@/components/admin-category-form";
-import { toggleCategoryAction } from "@/lib/actions";
+import { Plus } from "lucide-react";
+import { AdminCategoryForm, type AdminCategoryRecord } from "@/components/admin-category-form";
+import { AdminCategoryCatalog } from "@/components/admin-category-catalog";
 import { categories as fallbackCategories } from "@/lib/catalog-data";
 import { getAdminCatalogData } from "@/lib/catalog-repository";
 import { createClient, getCurrentProfile } from "@/lib/supabase/server";
@@ -35,6 +32,11 @@ export default async function AdminCategoriesPage() {
         filter_config: category.filterKeys,
         is_active: true,
       }));
+  const productCounts = products.reduce<Record<string, number>>((counts, product) => {
+    if (product.categorySlug)
+      counts[product.categorySlug] = (counts[product.categorySlug] ?? 0) + 1;
+    return counts;
+  }, {});
 
   return (
     <main>
@@ -53,34 +55,11 @@ export default async function AdminCategoriesPage() {
         </summary>
         <AdminCategoryForm enabled={enabled} nextOrder={categories.length + 1} />
       </details>
-      <div className="admin-category-list editable">
-        {categories.map((category) => (
-          <details key={category.id}>
-            <summary>
-              <GripVertical />
-              <span className="category-number">{String(category.sort_order).padStart(2, "0")}</span>
-              <div>
-                <h2>{category.name_de}</h2>
-                <p>{category.description_de}</p>
-              </div>
-              <b>
-                {products.filter((item) => item.categorySlug === category.slug).length} Produkte ·{" "}
-                {category.is_active ? "Aktiv" : "Ausgeblendet"}
-              </b>
-            </summary>
-            <div className="px-5 pb-2">
-              <AdminCategoryForm category={category} enabled={enabled} />
-            </div>
-            <form action={toggleCategoryAction} className="category-toggle-form">
-              <input type="hidden" name="id" value={category.id} />
-              <input type="hidden" name="active" value={String(!category.is_active)} />
-              <button type="submit" disabled={!enabled}>
-                {category.is_active ? "Kategorie ausblenden" : "Kategorie aktivieren"}
-              </button>
-            </form>
-          </details>
-        ))}
-      </div>
+      <AdminCategoryCatalog
+        categories={categories}
+        enabled={enabled}
+        productCounts={productCounts}
+      />
     </main>
   );
 }

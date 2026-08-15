@@ -15,7 +15,7 @@
   padding: 20px 24px;
   border: 1px solid var(--line);
   border-radius: 10px;
-  background: white;
+  background: var(--white);
 }
 .service-strip > div > div:first-child {
   border-left: 1px solid var(--line);

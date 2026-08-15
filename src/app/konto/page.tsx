@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { FileText, LogOut, PackageSearch, UserRound } from "lucide-react";
+import { ArrowUpRight, FileText, LogOut, PackageSearch, UserRound } from "lucide-react";
 import { signOutAction } from "@/lib/actions";
 import { ProfileForm } from "@/components/profile-form";
 import { getCurrentProfile } from "@/lib/supabase/server";
@@ -30,46 +30,53 @@ export default async function AccountPage() {
         </div>
       </main>
     );
+  const fullName = auth.profile?.full_name?.trim() || "";
   return (
     <main className="shell page-main">
-      <div className="account-head">
+      <section className="account-head" aria-labelledby="account-heading">
         <div>
           <p className="kicker">MEIN KONTO</p>
-          <h1>Guten Tag{auth.profile?.full_name ? `, ${auth.profile.full_name}` : ""}.</h1>
+          <div className="account-title-row">
+            <h1 id="account-heading">Guten Tag{fullName ? `, ${fullName}` : ""}.</h1>
+            <span className="account-status">Angemeldet</span>
+          </div>
           <p>{auth.user.email}</p>
         </div>
         <form action={signOutAction}>
           <button type="submit">
-            <LogOut size={16} /> Abmelden
+            <LogOut size={16} aria-hidden="true" /> Abmelden
           </button>
         </form>
-      </div>
-      <div className="account-grid">
-        <Link href="/konto/anfragen">
-          <FileText />
+      </section>
+      <nav className="account-actions" aria-label="Schnellzugriff">
+        <Link className="account-action-card" href="/konto/anfragen">
+          <FileText aria-hidden="true" />
           <span>
             <b>Meine Bestellungen</b>
             <small>Abholstatus und Positionen</small>
           </span>
+          <ArrowUpRight aria-hidden="true" />
         </Link>
-        <Link href="/sortiment">
-          <PackageSearch />
+        <Link className="account-action-card" href="/sortiment">
+          <PackageSearch aria-hidden="true" />
           <span>
             <b>Sortiment</b>
             <small>Neue Materialien entdecken</small>
           </span>
+          <ArrowUpRight aria-hidden="true" />
         </Link>
         {auth.profile?.role === "admin" && (
-          <Link href="/admin">
-            <UserRound />
+          <Link className="account-action-card" href="/admin">
+            <UserRound aria-hidden="true" />
             <span>
               <b>Administration</b>
               <small>Katalog und Bestellungen verwalten</small>
             </span>
+            <ArrowUpRight aria-hidden="true" />
           </Link>
         )}
-      </div>
-      <ProfileForm fullName={auth.profile?.full_name ?? ""} phone={auth.profile?.phone ?? ""} />
+      </nav>
+      <ProfileForm fullName={fullName} phone={auth.profile?.phone ?? ""} />
     </main>
   );
 }

@@ -59,8 +59,13 @@ export function CartView({ products }: { products: Product[] }) {
                 aria-label="Menge"
                 type="number"
                 min="1"
+                max="999"
+                step="1"
                 value={quantity}
-                onChange={(event) => setQuantity(product!.id, Number(event.target.value))}
+                onChange={(event) => {
+                  const value = event.target.value;
+                  setQuantity(product!.id, value === "" ? 0 : Number(value));
+                }}
               />
               <button
                 type="button"
@@ -96,10 +101,6 @@ export function CartView({ products }: { products: Product[] }) {
           <span>Gesamtsumme</span>
           <strong>{euro.format(subtotal)}</strong>
         </div>
-        <p>
-          inkl. 19 % MwSt. Wir prüfen die Verfügbarkeit erneut und stellen Ihre Bestellung zur
-          Abholung zusammen.
-        </p>
         <Link className="button primary" href="/anfrage">
           Zur Bestellung
         </Link>

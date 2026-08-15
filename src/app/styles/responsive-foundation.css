@@ -1,9 +1,42 @@
 @media (max-width: 1050px) {
   .header-main {
+    position: relative;
     grid-template-columns: 200px 1fr;
   }
   .header-actions {
     display: none;
+  }
+  .mobile-theme-toggle {
+    position: absolute;
+    top: 21px;
+    right: 59px;
+    display: inline-flex;
+    min-height: 30px;
+    padding: 0 8px;
+  }
+  .mobile-theme-toggle span {
+    display: none;
+  }
+  .mobile-menu-button {
+    position: absolute;
+    top: 18px;
+    right: 14px;
+    display: grid;
+    place-items: center;
+    border: 0;
+    background: transparent;
+  }
+  .mobile-nav {
+    display: flex;
+    flex-direction: column;
+    padding: 12px 20px 20px;
+    border-top: 1px solid var(--line);
+  }
+  .mobile-nav a {
+    padding: 12px 0;
+    border-bottom: 1px solid var(--line);
+    font-size: 13px;
+    font-weight: 700;
   }
   .hero {
     grid-template-columns: 1fr;

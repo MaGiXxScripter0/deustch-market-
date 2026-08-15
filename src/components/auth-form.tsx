@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useCallback, useEffect, useState } from "react";
+import { useActionState, useCallback, useState } from "react";
 import type { ActionState } from "@/lib/actions";
 import { TurnstileWidget } from "./turnstile-widget";
 
@@ -14,15 +14,14 @@ export function AuthForm({
   mode: "login" | "signup" | "reset";
 }) {
   const [state, formAction, pending] = useActionState(action, {});
-  const [turnstileToken, setTurnstileToken] = useState("");
-  const [resetKey, setResetKey] = useState(0);
-  const handleTokenChange = useCallback((token: string) => setTurnstileToken(token), []);
-  useEffect(() => {
-    if (state.error) {
-      setTurnstileToken("");
-      setResetKey((key) => key + 1);
-    }
-  }, [state.error]);
+  const captchaGeneration = state.turnstileResetId ?? "initial";
+  const [verifiedCaptcha, setVerifiedCaptcha] = useState({ token: "", generation: "" });
+  const turnstileToken =
+    verifiedCaptcha.generation === captchaGeneration ? verifiedCaptcha.token : "";
+  const handleTokenChange = useCallback(
+    (token: string) => setVerifiedCaptcha({ token, generation: captchaGeneration }),
+    [captchaGeneration],
+  );
   return (
     <form className="auth-form" action={formAction}>
       {mode === "signup" && (
@@ -55,11 +54,10 @@ export function AuthForm({
       )}
       {mode !== "reset" && (
         <>
-          <input name="cf-turnstile-response" type="hidden" value={turnstileToken} readOnly />
           <TurnstileWidget
+            key={captchaGeneration}
             action={mode === "login" ? "login" : "signup"}
             onTokenChange={handleTokenChange}
-            resetKey={resetKey}
           />
         </>
       )}

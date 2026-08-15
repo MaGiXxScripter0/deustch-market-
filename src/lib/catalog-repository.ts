@@ -24,7 +24,7 @@ type DatabaseInventory = {
 
 type DatabaseProduct = {
   id: string;
-  category_id: string;
+  category_id: string | null;
   sku: string;
   slug: string;
   brand: string;
@@ -81,16 +81,19 @@ async function queryCatalog(supabase: SupabaseClient<Database>): Promise<Catalog
       .order("is_featured", { ascending: false }),
   ]);
 
-  if (
-    categoryResult.error ||
-    productResult.error ||
-    !categoryResult.data?.length ||
-    !productResult.data?.length
-  ) {
+  if (categoryResult.error || productResult.error || !productResult.data?.length) {
     return { categories: fallbackCategories, products: fallbackProducts, source: "demo" };
   }
 
-  const rows = categoryResult.data as DatabaseCategory[];
+  const { categories, products } = mapCatalogRows(
+    (categoryResult.data ?? []) as DatabaseCategory[],
+    productResult.data as unknown as DatabaseProduct[],
+  );
+
+  return { categories, products, source: "supabase" };
+}
+
+export function mapCatalogRows(rows: DatabaseCategory[], productRows: DatabaseProduct[]) {
   const categories: Category[] = rows.map((category, index) => ({
     id: category.id,
     slug: category.slug,
@@ -103,49 +106,47 @@ async function queryCatalog(supabase: SupabaseClient<Database>): Promise<Catalog
       : [],
   }));
   const categoryById = new Map(categories.map((category) => [category.id, category.slug]));
-  const products: Product[] = (productResult.data as unknown as DatabaseProduct[]).map(
-    (product) => {
-      const inventory = product.inventory ?? [];
-      const berlin = inventory.find((item) => locationSlug(item) === siteConfig.pickupLocationSlug);
-      const image =
-        product.primary_image_url ??
-        fallbackProducts.find((item) => item.id === product.id)?.image ??
-        "/og.png";
+  const products: Product[] = productRows.map((product) => {
+    const inventory = product.inventory ?? [];
+    const berlin = inventory.find((item) => locationSlug(item) === siteConfig.pickupLocationSlug);
+    const image =
+      product.primary_image_url ??
+      fallbackProducts.find((item) => item.id === product.id)?.image ??
+      "/og.png";
 
-      return {
-        id: product.id,
-        slug: product.slug,
-        categorySlug: categoryById.get(product.category_id) ?? "",
-        sku: product.sku,
-        brand: product.brand,
-        name: product.name_de,
-        shortDescription: product.short_description_de,
-        description: product.description_de,
-        price: Number(product.price_gross),
-        saleUnit: product.sale_unit,
-        basePrice: Number(product.base_price),
-        baseUnit: product.base_unit,
-        baseQuantity: Number(product.base_quantity),
-        coveragePerUnit: product.coverage_per_unit ? Number(product.coverage_per_unit) : undefined,
-        weightKg: Number(product.weight_kg),
-        image,
-        imageAlt: `${product.name_de} – Produktabbildung`,
-        featured: product.is_featured,
-        active: product.is_active,
-        aliases: product.search_aliases ?? [],
-        specs: product.specs ?? {},
-        inventory: {
-          berlin: Number(berlin?.available_qty ?? 0),
-          pickup: Boolean(berlin?.pickup_available),
-          pickupLeadTime: berlin?.lead_time_de || "Abholung auf Anfrage",
-        },
-        variantGroup: product.variant_group ?? undefined,
-        variantLabel: product.variant_label ?? undefined,
-      };
-    },
-  );
+    return {
+      id: product.id,
+      slug: product.slug,
+      categorySlug: product.category_id ? (categoryById.get(product.category_id) ?? null) : null,
+      sku: product.sku,
+      brand: product.brand,
+      name: product.name_de,
+      shortDescription: product.short_description_de,
+      description: product.description_de,
+      price: Number(product.price_gross),
+      saleUnit: product.sale_unit,
+      basePrice: Number(product.base_price),
+      baseUnit: product.base_unit,
+      baseQuantity: Number(product.base_quantity),
+      coveragePerUnit: product.coverage_per_unit ? Number(product.coverage_per_unit) : undefined,
+      weightKg: Number(product.weight_kg),
+      image,
+      imageAlt: `${product.name_de} – Produktabbildung`,
+      featured: product.is_featured,
+      active: product.is_active,
+      aliases: product.search_aliases ?? [],
+      specs: product.specs ?? {},
+      inventory: {
+        berlin: Number(berlin?.available_qty ?? 0),
+        pickup: Boolean(berlin?.pickup_available),
+        pickupLeadTime: berlin?.lead_time_de || "Abholung auf Anfrage",
+      },
+      variantGroup: product.variant_group ?? undefined,
+      variantLabel: product.variant_label ?? undefined,
+    };
+  });
 
-  return { categories, products, source: "supabase" };
+  return { categories, products };
 }
 
 export const getCatalogData = unstable_cache(readCatalog, ["catalog-v4"], {

@@ -22,6 +22,9 @@
   .profile-form {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+  .account-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 700px) {
@@ -56,7 +59,7 @@
   .footer-grid,
   .product-information,
   .auth-page,
-  .account-grid,
+  .account-actions,
   .service-cards {
     grid-template-columns: 1fr;
   }
@@ -109,7 +112,7 @@
     justify-content: center;
     gap: 8px;
     border: 1px solid var(--ink);
-    background: white;
+    background: var(--white);
     font-weight: 800;
   }
   .filter-drawer {
@@ -121,7 +124,7 @@
     z-index: 80;
     display: block;
     overflow: auto;
-    background: white;
+    background: var(--white);
     padding: 24px;
   }
   .filter-mobile-head {
@@ -187,6 +190,7 @@
   }
   .cart-line {
     grid-template-columns: 84px 1fr;
+    padding: 18px 0;
   }
   .cart-thumb {
     height: 84px;
@@ -227,6 +231,11 @@
     align-items: flex-start;
     flex-direction: column;
     gap: 20px;
+  }
+  .account-title-row {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
   }
   .admin-shell {
     grid-template-columns: 1fr;

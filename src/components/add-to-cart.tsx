@@ -22,6 +22,8 @@ export function AddToCart({
       className={compact ? "add-button compact" : "add-button"}
       type="button"
       disabled={disabled}
+      aria-label={disabled ? "Zur Abholung nicht verfügbar" : undefined}
+      title={disabled ? "Zur Abholung nicht verfügbar" : undefined}
       onClick={() => {
         add(productId, quantity);
         setAdded(true);
@@ -30,7 +32,7 @@ export function AddToCart({
       aria-live="polite"
     >
       {disabled ? (
-        <>Zur Abholung nicht verfügbar</>
+        <>Nicht abholbar</>
       ) : added ? (
         <>
           <Check size={17} /> Hinzugefügt

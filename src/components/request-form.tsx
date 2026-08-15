@@ -13,9 +13,14 @@ export function RequestForm({ products }: { products: Product[] }) {
   const { lines, clear, ready } = useCart();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [turnstileToken, setTurnstileToken] = useState("");
-  const [resetKey, setResetKey] = useState(0);
-  const handleTokenChange = useCallback((token: string) => setTurnstileToken(token), []);
+  const [captchaGeneration, setCaptchaGeneration] = useState(0);
+  const [verifiedCaptcha, setVerifiedCaptcha] = useState({ token: "", generation: -1 });
+  const turnstileToken =
+    verifiedCaptcha.generation === captchaGeneration ? verifiedCaptcha.token : "";
+  const handleTokenChange = useCallback(
+    (token: string) => setVerifiedCaptcha({ token, generation: captchaGeneration }),
+    [captchaGeneration],
+  );
   const [success, setSuccess] = useState<{
     requestNumber: string;
     pickupCode: string;
@@ -61,8 +66,7 @@ export function RequestForm({ products }: { products: Product[] }) {
       setError(
         caught instanceof Error ? caught.message : "Die Bestellung konnte nicht gesendet werden.",
       );
-      setTurnstileToken("");
-      setResetKey((key) => key + 1);
+      setCaptchaGeneration((generation) => generation + 1);
     } finally {
       setLoading(false);
     }
@@ -197,9 +201,9 @@ export function RequestForm({ products }: { products: Product[] }) {
               </span>
             </label>
             <TurnstileWidget
+              key={captchaGeneration}
               action="checkout"
               onTokenChange={handleTokenChange}
-              resetKey={resetKey}
             />
           </div>
         </section>

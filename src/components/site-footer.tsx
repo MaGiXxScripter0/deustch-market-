@@ -42,7 +42,6 @@ export function SiteFooter() {
       </div>
       <div className="shell footer-bottom">
         <span>© 2026 {siteConfig.name}</span>
-        <span>Alle Preise inkl. 19 % MwSt. · Nur Abholung im Markt.</span>
       </div>
     </footer>
   );

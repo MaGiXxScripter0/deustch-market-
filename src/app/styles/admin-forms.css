@@ -3,7 +3,7 @@
   margin: 12vh auto;
   padding: clamp(32px, 6vw, 72px);
   border: 1px solid var(--line);
-  background: white;
+  background: var(--white);
 }
 .admin-access-gate h1 {
   margin: 12px 0 18px;
@@ -23,7 +23,7 @@
 .admin-product-form section {
   padding: 28px;
   border: 1px solid var(--line);
-  background: white;
+  background: var(--white);
 }
 .admin-product-form h2 {
   margin: 0 0 22px;
@@ -55,7 +55,7 @@
   padding: 12px 13px;
   border: 1px solid var(--line);
   border-radius: 0;
-  background: white;
+  background: var(--white);
   color: var(--ink);
   font: inherit;
   font-weight: 500;

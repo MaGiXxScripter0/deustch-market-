@@ -29,7 +29,8 @@ export function AdminCategoryForm({
     ? category.filter_config.filter((filter) => typeof filter === "string").join(", ")
     : "";
   const labelClass = "grid gap-2 text-[10px] font-bold text-[var(--muted)]";
-  const inputClass = "w-full border border-[var(--line)] bg-white px-3 py-2.5 font-inherit";
+  const inputClass =
+    "w-full border border-[var(--line)] bg-[var(--white)] px-3 py-2.5 font-inherit";
 
   return (
     <form

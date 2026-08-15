@@ -20,6 +20,11 @@ const EMPTY_CART: CartLine[] = [];
 let cachedRaw: string | null = null;
 let cachedLines: CartLine[] = EMPTY_CART;
 
+function normalizeQuantity(quantity: number) {
+  if (!Number.isFinite(quantity)) return 0;
+  return Math.min(999, Math.max(0, Math.floor(quantity)));
+}
+
 function readCartSnapshot() {
   if (typeof window === "undefined") return EMPTY_CART;
   const raw = window.localStorage.getItem(STORAGE_KEY);
@@ -57,7 +62,7 @@ function subscribeToCart(callback: () => void) {
 }
 
 function updateStoredCart(updater: (current: CartLine[]) => CartLine[]) {
-  const next = updater(readCartSnapshot());
+  const next = updater(readCartSnapshot()).filter((line) => line.quantity > 0);
   cachedLines = next;
   cachedRaw = JSON.stringify(next);
   window.localStorage.setItem(STORAGE_KEY, cachedRaw);
@@ -77,24 +82,28 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const add = useCallback(
     (productId: string, quantity = 1) =>
       updateStoredCart((current) => {
+        const normalizedQuantity = normalizeQuantity(quantity);
+        if (!normalizedQuantity) return current;
         const existing = current.find((line) => line.productId === productId);
         return existing
           ? current.map((line) =>
               line.productId === productId
-                ? { ...line, quantity: Math.min(999, line.quantity + quantity) }
+                ? { ...line, quantity: Math.min(999, line.quantity + normalizedQuantity) }
                 : line,
             )
-          : [...current, { productId, quantity }];
+          : [...current, { productId, quantity: normalizedQuantity }];
       }),
     [],
   );
   const setQuantity = useCallback(
     (productId: string, quantity: number) =>
       updateStoredCart((current) =>
-        quantity <= 0
+        normalizeQuantity(quantity) <= 0
           ? current.filter((line) => line.productId !== productId)
           : current.map((line) =>
-              line.productId === productId ? { ...line, quantity: Math.min(999, quantity) } : line,
+              line.productId === productId
+                ? { ...line, quantity: normalizeQuantity(quantity) }
+                : line,
             ),
       ),
     [],

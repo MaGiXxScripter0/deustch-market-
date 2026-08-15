@@ -33,7 +33,10 @@ function ProductStatus({ product, enabled }: { product: Product; enabled: boolea
 export function AdminProductCatalog({ products, enabled }: AdminProductCatalogProps) {
   const [view, setView] = useState<ViewMode>("list");
   const [query, setQuery] = useState("");
-  const filteredProducts = filterAdminProducts(query, products);
+  const [uncategorizedOnly, setUncategorizedOnly] = useState(false);
+  const filteredProducts = filterAdminProducts(query, products).filter(
+    (product) => !uncategorizedOnly || product.categorySlug === null,
+  );
 
   return (
     <section className={`admin-product-browser is-${view}`} aria-label="Produktübersicht">
@@ -57,6 +60,18 @@ export function AdminProductCatalog({ products, enabled }: AdminProductCatalogPr
         <span className="admin-product-result-count" aria-live="polite">
           {filteredProducts.length} {filteredProducts.length === 1 ? "Produkt" : "Produkte"}
         </span>
+        <button
+          className={
+            uncategorizedOnly
+              ? "admin-product-category-filter is-active"
+              : "admin-product-category-filter"
+          }
+          type="button"
+          onClick={() => setUncategorizedOnly((current) => !current)}
+          aria-pressed={uncategorizedOnly}
+        >
+          Ohne Kategorie
+        </button>
         <div className="admin-view-switcher" role="group" aria-label="Ansicht wählen">
           <span>Ansicht</span>
           <button
@@ -82,7 +97,13 @@ export function AdminProductCatalog({ products, enabled }: AdminProductCatalogPr
         <div className="admin-product-empty" role="status">
           <strong>Keine Produkte gefunden</strong>
           <span>Versuche einen anderen Suchbegriff.</span>
-          <button type="button" onClick={() => setQuery("")}>
+          <button
+            type="button"
+            onClick={() => {
+              setQuery("");
+              setUncategorizedOnly(false);
+            }}
+          >
             Suche leeren
           </button>
         </div>

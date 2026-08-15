@@ -60,11 +60,14 @@ export default async function AdminRequestsPage() {
       <div className="request-admin-list">
         {rows.map((row) => (
           <article key={row.id}>
+            <Link
+              className="request-admin-card-link"
+              href={`/admin/anfragen/${row.id}`}
+              aria-label={`Bestellung ${row.request_number} öffnen`}
+            />
             <div>
               <small>{new Date(row.created_at).toLocaleDateString("de-DE")}</small>
-              <h2>
-                <Link href={`/admin/anfragen/${row.id}`}>{row.request_number}</Link>
-              </h2>
+              <h2>{row.request_number}</h2>
               <span>{row.request_items?.length ?? 0} Positionen zur Abholung</span>
             </div>
             <p>
@@ -72,7 +75,11 @@ export default async function AdminRequestsPage() {
               <span>{row.customer_email}</span>
             </p>
             <strong>{euro.format(Number(row.subtotal))}</strong>
-            <form action={updateRequestStatusAction}>
+            <form
+              action={updateRequestStatusAction}
+              className="request-admin-status"
+              data-status={row.status}
+            >
               <input type="hidden" name="id" value={row.id} />
               <select name="status" defaultValue={row.status} disabled={!enabled}>
                 {(nextStatuses[row.status] ?? [row.status]).map((status) => (

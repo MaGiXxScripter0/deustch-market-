@@ -16,7 +16,6 @@ declare global {
   interface Window {
     turnstile?: {
       render: (container: HTMLElement, options: WidgetOptions) => string;
-      reset: (widgetId: string) => void;
       remove: (widgetId: string) => void;
     };
   }
@@ -25,15 +24,11 @@ declare global {
 export function TurnstileWidget({
   action,
   onTokenChange,
-  resetKey,
 }: {
   action: TurnstileAction;
   onTokenChange: (token: string) => void;
-  resetKey: number;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const widgetIdRef = useRef<string | null>(null);
-  const renderedResetKeyRef = useRef(resetKey);
   const [scriptReady, setScriptReady] = useState(false);
   const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 
@@ -46,15 +41,8 @@ export function TurnstileWidget({
       "expired-callback": () => onTokenChange(""),
       "error-callback": () => onTokenChange(""),
     });
-    widgetIdRef.current = widgetId;
     return () => window.turnstile?.remove(widgetId);
   }, [action, onTokenChange, scriptReady, siteKey]);
-
-  useEffect(() => {
-    if (renderedResetKeyRef.current === resetKey) return;
-    renderedResetKeyRef.current = resetKey;
-    if (widgetIdRef.current) window.turnstile?.reset(widgetIdRef.current);
-  }, [resetKey]);
 
   if (!siteKey)
     return (

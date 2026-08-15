@@ -1,6 +1,8 @@
 :root {
   --ink: #17201c;
+  --deep: #17201c;
   --muted: #647069;
+  --canvas: #fcfcfb;
   --paper: #f6f7f4;
   --white: #fff;
   --line: #e0e4e0;
@@ -16,7 +18,7 @@ html {
 }
 body {
   margin: 0;
-  background: #fcfcfb;
+  background: var(--canvas);
   color: var(--ink);
   font-family: Arial, Helvetica, sans-serif;
 }

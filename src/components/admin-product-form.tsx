@@ -66,7 +66,8 @@ export function AdminProductForm({
           </label>
           <label className="wide">
             Kategorie
-            <select name="categoryId" defaultValue={categoryId} required>
+            <select name="categoryId" defaultValue={categoryId ?? ""}>
+              <option value="">Ohne Kategorie</option>
               {categories.map((category) => (
                 <option value={category.id} key={category.id}>
                   {category.name}

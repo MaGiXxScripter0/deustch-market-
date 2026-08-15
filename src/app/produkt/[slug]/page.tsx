@@ -50,9 +50,11 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   const variants = product.variantGroup
     ? products.filter((item) => item.variantGroup === product.variantGroup)
     : [];
-  const related = products
-    .filter((item) => item.categorySlug === product.categorySlug && item.id !== product.id)
-    .slice(0, 4);
+  const related = product.categorySlug
+    ? products
+        .filter((item) => item.categorySlug === product.categorySlug && item.id !== product.id)
+        .slice(0, 4)
+    : [];
   const structured = {
     "@context": "https://schema.org",
     "@type": "Product",
@@ -76,7 +78,13 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
       <div className="shell product-page">
         <p className="breadcrumbs">
           <Link href="/">Startseite</Link> / <Link href="/sortiment">Sortiment</Link> /{" "}
-          <Link href={`/kategorie/${category?.slug}`}>{category?.name}</Link> / {product.name}
+          {category ? (
+            <>
+              <Link href={`/kategorie/${category.slug}`}>{category.name}</Link> / {product.name}
+            </>
+          ) : (
+            product.name
+          )}
         </p>
         <div className="product-detail">
           <div className="product-gallery">

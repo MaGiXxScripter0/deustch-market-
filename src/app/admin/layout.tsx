@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { Boxes, FolderTree, LayoutDashboard, MessageSquareText, UsersRound } from "lucide-react";
+import { ArrowUpRight, Store } from "lucide-react";
+import { AdminNavigation } from "@/components/admin-navigation";
 import { getCurrentProfile } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -28,34 +29,18 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   return (
     <div className="admin-shell">
       <aside className="admin-nav">
-        <p>
-          DEMO
-          <br />
+        <Link className="admin-brand" href="/admin" aria-label="BNL Administration">
+          <span>BNL</span>
           <b>ADMIN</b>
-        </p>
-        <nav>
-          <Link href="/admin">
-            <LayoutDashboard />
-            Übersicht
+        </Link>
+        <p className="admin-nav-label">Arbeitsbereich</p>
+        <AdminNavigation />
+        <div className="admin-nav-footer">
+          <span><i aria-hidden="true" />System bereit</span>
+          <Link href="/">
+            <Store aria-hidden="true" /> Zum Shop <ArrowUpRight aria-hidden="true" />
           </Link>
-          <Link href="/admin/produkte">
-            <Boxes />
-            Produkte
-          </Link>
-          <Link href="/admin/kategorien">
-            <FolderTree />
-            Kategorien
-          </Link>
-          <Link href="/admin/anfragen">
-            <MessageSquareText />
-            Bestellungen
-          </Link>
-          <Link href="/admin/kunden">
-            <UsersRound />
-            Kunden
-          </Link>
-        </nav>
-        <Link href="/">← Zum Shop</Link>
+        </div>
       </aside>
       <div className="admin-content">{children}</div>
     </div>

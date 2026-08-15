@@ -53,7 +53,7 @@
 .filter-chips button {
   padding: 8px 11px;
   border: 1px solid var(--line);
-  background: white;
+  background: var(--white);
   font-size: 11px;
 }
 .catalog-layout {
@@ -111,7 +111,7 @@
   width: 100%;
   padding: 9px 8px;
   border: 1px solid var(--line);
-  background: white;
+  background: var(--white);
   color: var(--ink);
 }
 .filter-category {
@@ -156,7 +156,7 @@
   height: 38px;
   padding: 0 34px 0 12px;
   border: 1px solid var(--line);
-  background: white;
+  background: var(--white);
 }
 .catalog-grid {
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -209,7 +209,7 @@
 }
 .no-results > div:first-of-type a {
   padding: 10px 13px;
-  background: white;
+  background: var(--white);
   border: 1px solid var(--line);
   font-size: 12px;
 }

@@ -4,13 +4,19 @@ import { revalidatePath, updateTag } from "next/cache";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { productSchema, productSpecsSchema } from "./admin-product-validation";
+import { categoryDeletionSchema } from "./admin-category-management";
 import { parseCatalogImport } from "./catalog-import";
 import { siteConfig } from "./site-config";
 import { createClient, getCurrentProfile } from "./supabase/server";
 import { verifyTurnstile } from "./turnstile";
 
-export type ActionState = { error?: string; success?: string };
+export type ActionState = { error?: string; success?: string; turnstileResetId?: string };
 export type CatalogImportState = ActionState & { imported?: number; errors?: string[] };
+
+function captchaError(error: string): ActionState {
+  return { error, turnstileResetId: crypto.randomUUID() };
+}
 
 function slugFromImport(name: string, sku: string) {
   const normalized = `${name}-${sku}`
@@ -32,13 +38,15 @@ export async function signInAction(_: ActionState, formData: FormData): Promise<
     email: formData.get("email"),
     password: formData.get("password"),
   });
-  if (!parsed.success) return { error: parsed.error.issues[0]?.message };
+  if (!parsed.success) return captchaError(parsed.error.issues[0]?.message ?? "Ungültige Angaben.");
   if (!(await verifyTurnstile(formData.get("cf-turnstile-response"), "login", await headers())))
-    return { error: "Die Sicherheitsprüfung ist fehlgeschlagen. Bitte versuchen Sie es erneut." };
+    return captchaError(
+      "Die Sicherheitsprüfung ist fehlgeschlagen. Bitte versuchen Sie es erneut.",
+    );
   const supabase = await createClient();
-  if (!supabase) return { error: "Supabase ist noch nicht konfiguriert." };
+  if (!supabase) return captchaError("Supabase ist noch nicht konfiguriert.");
   const { error } = await supabase.auth.signInWithPassword(parsed.data);
-  if (error) return { error: "Anmeldung fehlgeschlagen. Bitte prüfen Sie Ihre Zugangsdaten." };
+  if (error) return captchaError("Anmeldung fehlgeschlagen. Bitte prüfen Sie Ihre Zugangsdaten.");
   redirect("/konto");
 }
 
@@ -53,12 +61,14 @@ export async function signUpAction(_: ActionState, formData: FormData): Promise<
       password: formData.get("password"),
       fullName: formData.get("fullName"),
       phone: formData.get("phone"),
-  });
-  if (!parsed.success) return { error: parsed.error.issues[0]?.message };
+    });
+  if (!parsed.success) return captchaError(parsed.error.issues[0]?.message ?? "Ungültige Angaben.");
   if (!(await verifyTurnstile(formData.get("cf-turnstile-response"), "signup", await headers())))
-    return { error: "Die Sicherheitsprüfung ist fehlgeschlagen. Bitte versuchen Sie es erneut." };
+    return captchaError(
+      "Die Sicherheitsprüfung ist fehlgeschlagen. Bitte versuchen Sie es erneut.",
+    );
   const supabase = await createClient();
-  if (!supabase) return { error: "Supabase ist noch nicht konfiguriert." };
+  if (!supabase) return captchaError("Supabase ist noch nicht konfiguriert.");
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
   const { error } = await supabase.auth.signUp({
     email: parsed.data.email,
@@ -69,10 +79,9 @@ export async function signUpAction(_: ActionState, formData: FormData): Promise<
     },
   });
   if (error)
-    return {
-      error:
-        "Registrierung fehlgeschlagen. Die E-Mail-Adresse ist möglicherweise bereits vergeben.",
-    };
+    return captchaError(
+      "Registrierung fehlgeschlagen. Die E-Mail-Adresse ist möglicherweise bereits vergeben.",
+    );
   return { success: "Fast geschafft: Bitte bestätigen Sie Ihre E-Mail-Adresse." };
 }
 
@@ -158,6 +167,24 @@ export async function updateRequestStatusAction(formData: FormData) {
   if (!status.success) return;
   const supabase = await createClient();
   if (!supabase) return;
+  const { data: request } = await supabase
+    .from("requests")
+    .select("status, request_items(quantity, picked_qty)")
+    .eq("id", id)
+    .maybeSingle();
+  if (!request) return;
+  const allowedStatuses: Record<string, string[]> = {
+    new: ["new", "processing", "cancelled"],
+    processing: ["processing", "ready_for_pickup", "cancelled"],
+    ready_for_pickup: ["ready_for_pickup", "completed", "cancelled"],
+    completed: ["completed"],
+    cancelled: ["cancelled"],
+  };
+  if (!allowedStatuses[request.status]?.includes(status.data)) return;
+  const allPicked = (request.request_items ?? []).every(
+    (item) => Number(item.picked_qty) >= Number(item.quantity),
+  );
+  if (status.data === "ready_for_pickup" && !allPicked) return;
   await supabase.rpc("set_pickup_order_status", {
     p_request_id: id,
     p_status: status.data,
@@ -328,7 +355,7 @@ export async function importCatalogAction(
 }
 
 const categorySchema = z.object({
-  id: z.uuid().optional(),
+  id: z.guid().optional(),
   slug: z.string().regex(/^[a-z0-9-]+$/),
   name: z.string().trim().min(3).max(120),
   description: z.string().trim().min(10).max(500),
@@ -380,11 +407,44 @@ export async function saveCategoryAction(_: ActionState, formData: FormData): Pr
   return { success: "Kategorie wurde gespeichert." };
 }
 
+export async function deleteCategoryAction(
+  _: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const auth = await getCurrentProfile();
+  if (auth?.profile?.role !== "admin") return { error: "Keine Administratorberechtigung." };
+  const parsed = categoryDeletionSchema.safeParse({
+    id: formData.get("id"),
+    confirmation: formData.get("confirmation"),
+  });
+  if (!parsed.success) return { error: "Bitte geben Sie den Kategorienamen ein." };
+
+  const supabase = await createClient();
+  if (!supabase) return { error: "Supabase ist nicht konfiguriert." };
+  const { data: category, error: readError } = await supabase
+    .from("categories")
+    .select("name_de")
+    .eq("id", parsed.data.id)
+    .maybeSingle();
+  if (readError || !category) return { error: "Kategorie wurde nicht gefunden." };
+  if (category.name_de !== parsed.data.confirmation)
+    return { error: "Der eingegebene Name stimmt nicht überein." };
+
+  const { error } = await supabase.from("categories").delete().eq("id", parsed.data.id);
+  if (error) return { error: `Löschen fehlgeschlagen: ${error.message}` };
+  updateTag("catalog");
+  revalidatePath("/admin/kategorien");
+  revalidatePath("/admin/produkte");
+  revalidatePath("/sortiment");
+  revalidatePath("/suche");
+  return { success: "Kategorie wurde gelöscht." };
+}
+
 export async function toggleCategoryAction(formData: FormData) {
   const auth = await getCurrentProfile();
   if (auth?.profile?.role !== "admin") return;
   const parsed = z
-    .object({ id: z.uuid(), active: z.enum(["true", "false"]) })
+    .object({ id: z.guid(), active: z.enum(["true", "false"]) })
     .safeParse({ id: formData.get("id"), active: formData.get("active") });
   if (!parsed.success) return;
   const supabase = await createClient();
@@ -396,29 +456,6 @@ export async function toggleCategoryAction(formData: FormData) {
   updateTag("catalog");
   revalidatePath("/admin/kategorien");
 }
-
-const productSchema = z.object({
-  id: z.uuid().optional(),
-  categoryId: z.uuid(),
-  sku: z.string().min(2).max(60),
-  slug: z.string().regex(/^[a-z0-9-]+$/),
-  brand: z.string().min(2).max(80),
-  name: z.string().min(3).max(180),
-  shortDescription: z.string().min(10).max(280),
-  description: z.string().min(20).max(4000),
-  price: z.coerce.number().nonnegative(),
-  saleUnit: z.string().min(1).max(30),
-  basePrice: z.coerce.number().nonnegative(),
-  baseUnit: z.string().min(1).max(20),
-  baseQuantity: z.coerce.number().positive(),
-  coverage: z.union([z.coerce.number().positive(), z.literal("")]).optional(),
-  weight: z.coerce.number().nonnegative(),
-  imageUrl: z.union([z.url(), z.literal("")]),
-  specs: z.string(),
-  aliases: z.string().optional(),
-  berlinStock: z.coerce.number().nonnegative(),
-});
-const productSpecsSchema = z.record(z.string(), z.union([z.string(), z.number(), z.boolean()]));
 
 export async function saveProductAction(_: ActionState, formData: FormData): Promise<ActionState> {
   const auth = await getCurrentProfile();
@@ -459,7 +496,7 @@ export async function saveProductAction(_: ActionState, formData: FormData): Pro
   if (!supabase) return { error: "Supabase ist nicht konfiguriert." };
   const productId = parsed.data.id ?? crypto.randomUUID();
   const productValues = {
-    category_id: parsed.data.categoryId,
+    category_id: parsed.data.categoryId || null,
     sku: parsed.data.sku,
     slug: parsed.data.slug,
     brand: parsed.data.brand,
