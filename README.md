@@ -15,6 +15,9 @@ Copy `.env.example` to `.env.local` and set:
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
+NEXT_PUBLIC_TURNSTILE_SITE_KEY=
+TURNSTILE_SECRET=
+TURNSTILE_HOSTNAMES=localhost,127.0.0.1
 ```
 
 The storefront automatically falls back to the bundled 24-product demo catalog until the Supabase schema and seed are installed.
@@ -44,6 +47,7 @@ There is intentionally no public role-elevation endpoint.
 ```bash
 pnpm format
 pnpm format:check
+pnpm check:size
 pnpm lint
 pnpm test
 pnpm build
@@ -57,6 +61,8 @@ pnpm dlx vercel
 pnpm dlx vercel --prod
 ```
 
-Add all three public environment variables to Preview and Production. Set `NEXT_PUBLIC_SITE_URL` to the final production origin so canonical, sitemap, authentication redirects, and social metadata use the deployed domain.
+Add all public environment variables plus `TURNSTILE_SECRET` and `TURNSTILE_HOSTNAMES` to Preview and Production. Set `NEXT_PUBLIC_SITE_URL` to the final production origin so canonical, sitemap, authentication redirects, and social metadata use the deployed domain. Set `TURNSTILE_HOSTNAMES` to that production hostname only (for example, `shop.example.de`); do not include local hostnames in production.
+
+The included `vercel.json` pins server workloads to London (`lhr1`) so they stay close to the connected Supabase project (`eu-west-2`).
 
 Legal pages contain demo templates and must be reviewed by qualified German counsel before commercial use.

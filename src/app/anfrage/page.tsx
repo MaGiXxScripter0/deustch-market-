@@ -1,16 +1,19 @@
 import type { Metadata } from "next";
 import { RequestForm } from "@/components/request-form";
 import { getCatalogData } from "@/lib/catalog-repository";
-export const metadata: Metadata = { title: "Angebot anfragen | Demo Baustoffmarkt" };
+import { siteConfig } from "@/lib/site-config";
+
+export const metadata: Metadata = { title: `Bestellung zur Abholung | ${siteConfig.name}` };
 export default async function RequestPage() {
   const { products } = await getCatalogData();
   return (
     <main className="shell page-main">
       <div className="page-hero compact">
-        <p className="kicker">UNVERBINDLICH & PERSÖNLICH</p>
-        <h1>Ihr Angebot anfragen.</h1>
+        <p className="kicker">NUR ABHOLUNG IM MARKT</p>
+        <h1>Bestellung abschließen.</h1>
         <p>
-          Wir prüfen Bestand, Lieferoptionen und Konditionen und melden uns persönlich bei Ihnen.
+          Wir prüfen Ihren Bestand, stellen die Ware zusammen und informieren Sie, sobald Ihre
+          Bestellung bereitliegt.
         </p>
       </div>
       <RequestForm products={products} />

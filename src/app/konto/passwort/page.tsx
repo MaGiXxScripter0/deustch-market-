@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { AuthForm } from "@/components/auth-form";
 import { resetPasswordAction } from "@/lib/actions";
-export const metadata: Metadata = { title: "Passwort zurücksetzen | Demo Baustoffmarkt" };
+import { siteConfig } from "@/lib/site-config";
+
+export const metadata: Metadata = { title: `Passwort zurücksetzen | ${siteConfig.name}` };
 export default function ResetPage() {
   return (
     <main className="auth-page single">

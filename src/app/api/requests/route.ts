@@ -1,58 +1,74 @@
 import { NextResponse } from "next/server";
-import { z } from "zod";
 import { getCatalogData } from "@/lib/catalog-repository";
+import {
+  calculateRequestSubtotal,
+  hasUnavailableLines,
+  requestSchema,
+  resolveRequestLines,
+} from "@/lib/request";
 import { createClient } from "@/lib/supabase/server";
-
-const schema = z.object({
-  name: z.string().min(2).max(120),
-  email: z.email(),
-  phone: z.string().min(5).max(40),
-  postalCode: z.string().regex(/^\d{5}$/),
-  fulfillment: z.enum(["pickup", "delivery"]),
-  comment: z.string().max(1000).optional(),
-  consent: z.literal(true),
-  website: z.string().max(0).optional(),
-  items: z
-    .array(z.object({ productId: z.uuid(), quantity: z.number().positive().max(999) }))
-    .min(1)
-    .max(100),
-});
+import { verifyTurnstile } from "@/lib/turnstile";
 
 export async function POST(request: Request) {
-  const parsed = schema.safeParse(await request.json().catch(() => null));
+  const payload: unknown = await request.json().catch(() => null);
+  const turnstileToken =
+    payload && typeof payload === "object" && "cf-turnstile-response" in payload
+      ? payload["cf-turnstile-response"]
+      : null;
+  if (!(await verifyTurnstile(turnstileToken, "checkout", request.headers)))
+    return NextResponse.json(
+      { error: "Die Sicherheitsprüfung ist fehlgeschlagen. Bitte versuchen Sie es erneut." },
+      { status: 403 },
+    );
+  const parsed = requestSchema.safeParse(payload);
   if (!parsed.success)
     return NextResponse.json({ error: "Bitte prüfen Sie Ihre Angaben." }, { status: 400 });
   const { products } = await getCatalogData();
-  const selected = parsed.data.items
-    .map((line) => ({ line, product: products.find((item) => item.id === line.productId) }))
-    .filter((entry) => entry.product);
-  if (selected.length !== parsed.data.items.length)
+  const selected = resolveRequestLines(parsed.data, products);
+  if (selected.some((entry) => !entry.product))
     return NextResponse.json(
       { error: "Mindestens ein Produkt ist nicht mehr verfügbar." },
       { status: 409 },
     );
-  const subtotal = selected.reduce(
-    (sum, entry) => sum + entry.product!.price * entry.line.quantity,
-    0,
-  );
+  if (hasUnavailableLines(parsed.data, selected))
+    return NextResponse.json(
+      { error: "Die gewünschte Menge ist aktuell nicht zur Abholung verfügbar." },
+      { status: 409 },
+    );
+  const subtotal = calculateRequestSubtotal(selected);
   const supabase = await createClient();
   if (supabase) {
-    const { data, error } = await supabase.rpc("place_request", {
+    const { data, error } = await supabase.rpc("place_pickup_order", {
       p_customer_name: parsed.data.name,
       p_customer_email: parsed.data.email,
       p_customer_phone: parsed.data.phone,
-      p_postal_code: parsed.data.postalCode,
-      p_fulfillment: parsed.data.fulfillment,
+      p_pickup_slot_start: parsed.data.pickupSlot,
       p_comment: parsed.data.comment ?? "",
+      p_consent: true,
       p_items: parsed.data.items,
     });
-    if (!error && data) return NextResponse.json({ requestNumber: data, subtotal });
+    if (!error && data && typeof data === "object") {
+      const order = data as { requestNumber?: string; pickupCode?: string };
+      if (order.requestNumber && order.pickupCode)
+        return NextResponse.json({
+          requestNumber: order.requestNumber,
+          pickupCode: order.pickupCode,
+          pickupSlot: parsed.data.pickupSlot,
+          subtotal,
+        });
+    }
     if (process.env.NODE_ENV === "production")
       return NextResponse.json(
-        { error: "Die Anfrage konnte nicht gespeichert werden." },
+        { error: "Die Bestellung konnte nicht gespeichert werden." },
         { status: 503 },
       );
   }
-  const demoNumber = `ANF-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`;
-  return NextResponse.json({ requestNumber: demoNumber, subtotal, demo: true });
+  const demoNumber = `ABH-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`;
+  return NextResponse.json({
+    requestNumber: demoNumber,
+    pickupCode: "DEMO00",
+    pickupSlot: parsed.data.pickupSlot,
+    subtotal,
+    demo: true,
+  });
 }

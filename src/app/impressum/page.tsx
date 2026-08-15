@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { siteConfig } from "@/lib/site-config";
-export const metadata: Metadata = { title: "Impressum | Demo Baustoffmarkt" };
+export const metadata: Metadata = { title: `Impressum | ${siteConfig.name}` };
 export default function ImpressumPage() {
   return (
     <main className="shell legal-page">
@@ -35,7 +35,7 @@ export default function ImpressumPage() {
       <section>
         <h2>Registereintrag und Umsatzsteuer</h2>
         <p>
-          Handelsregister: Amtsgericht Berlin-Charlottenburg, HRB 000000 B<br />
+          Handelsregister: Noch nicht angegeben (Demo-Entwurf)<br />
           USt-IdNr.: DE000000000
         </p>
       </section>

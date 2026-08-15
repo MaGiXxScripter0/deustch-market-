@@ -1,0 +1,219 @@
+/* Catalog and search */
+.page-main {
+  padding-bottom: 100px;
+}
+.page-hero {
+  max-width: 960px;
+  padding-block: 70px 54px;
+}
+.page-hero.compact {
+  padding-bottom: 32px;
+}
+.page-hero h1 {
+  margin: 0;
+  font-size: clamp(44px, 6vw, 78px);
+  line-height: 1;
+  letter-spacing: -0.045em;
+}
+.page-hero > p:last-child {
+  max-width: 720px;
+  color: var(--muted);
+  font-size: 18px;
+  line-height: 1.6;
+}
+.breadcrumbs {
+  margin: 0 0 36px !important;
+  color: var(--muted);
+  font-size: 11px !important;
+}
+.breadcrumbs a:hover {
+  color: var(--ink);
+}
+.category-page-hero {
+  position: relative;
+}
+.category-page-hero > .category-number {
+  position: absolute;
+  right: 0;
+  bottom: 40px;
+  color: #e7e9e6;
+  font-size: 150px;
+  font-weight: 900;
+  line-height: 0.7;
+  z-index: -1;
+}
+.category-facets,
+.filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 24px;
+}
+.category-facets span,
+.filter-chips button {
+  padding: 8px 11px;
+  border: 1px solid var(--line);
+  background: white;
+  font-size: 11px;
+}
+.catalog-layout {
+  display: grid;
+  grid-template-columns: 230px minmax(0, 1fr);
+  gap: 44px;
+  padding-top: 24px;
+  border-top: 1px solid var(--line);
+}
+.filter-panel fieldset {
+  margin: 0;
+  padding: 24px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+}
+.filter-panel legend {
+  width: 100%;
+  margin-bottom: 16px;
+  font-size: 13px;
+  font-weight: 850;
+}
+.filter-panel label,
+.filter-category {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: #48534d;
+  font-size: 12px;
+  cursor: pointer;
+}
+.filter-panel input {
+  accent-color: var(--accent);
+}
+.filter-panel label small {
+  margin-left: auto;
+  color: var(--muted);
+  font-weight: 500;
+}
+.price-filter {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.price-filter label {
+  display: grid;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 750;
+}
+.price-filter input {
+  min-width: 0;
+  width: 100%;
+  padding: 9px 8px;
+  border: 1px solid var(--line);
+  background: white;
+  color: var(--ink);
+}
+.filter-category {
+  justify-content: space-between;
+}
+.filter-category span {
+  color: var(--muted);
+}
+.reset-filters {
+  margin-top: 20px;
+  border: 0;
+  border-bottom: 1px solid var(--ink);
+  background: transparent;
+  font-size: 12px;
+  font-weight: 750;
+  cursor: pointer;
+}
+.filter-mobile-head,
+.filter-mobile-apply,
+.mobile-filter-trigger {
+  display: none;
+}
+.catalog-toolbar {
+  min-height: 52px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+.catalog-toolbar p {
+  margin: 0;
+  font-size: 12px;
+}
+.catalog-toolbar label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.catalog-toolbar select {
+  height: 38px;
+  padding: 0 34px 0 12px;
+  border: 1px solid var(--line);
+  background: white;
+}
+.catalog-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.filter-chips {
+  margin: 0 0 18px;
+}
+.filter-chips button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+.empty-state,
+.empty-cart,
+.no-results,
+.loading-card {
+  padding: 80px 30px;
+  text-align: center;
+  border: 1px solid var(--line);
+  background: var(--paper);
+}
+.empty-state p,
+.empty-cart p,
+.no-results > p {
+  color: var(--muted);
+}
+.empty-state .button {
+  margin-top: 18px;
+}
+.search-results {
+  padding-top: 20px;
+}
+.search-correction {
+  margin: -18px 0 30px;
+  padding: 14px 16px;
+  border-left: 3px solid var(--accent);
+  background: #fff7f1;
+  font-size: 13px;
+}
+.search-correction a {
+  font-weight: 850;
+  text-decoration: underline;
+}
+.no-results > div:first-of-type {
+  margin-block: 28px 58px;
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+.no-results > div:first-of-type a {
+  padding: 10px 13px;
+  background: white;
+  border: 1px solid var(--line);
+  font-size: 12px;
+}
+.no-results h3 {
+  margin-top: 60px;
+  text-align: left;
+}

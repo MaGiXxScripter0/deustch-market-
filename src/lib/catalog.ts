@@ -86,16 +86,28 @@ export function searchProducts(
     .map((entry) => entry.product);
 }
 
-export function filterProducts(filters: CatalogFilters): Product[] {
-  let result = filters.q ? searchProducts(filters.q) : [...products];
+export function filterProducts(
+  filters: CatalogFilters,
+  productItems: Product[] = products,
+  categoryItems = categories,
+): Product[] {
+  let result = filters.q
+    ? searchProducts(filters.q, productItems, categoryItems)
+    : [...productItems];
   if (filters.category) result = result.filter((item) => item.categorySlug === filters.category);
   if (filters.brands?.length)
     result = result.filter((item) => filters.brands?.includes(item.brand));
-  if (filters.availability) result = result.filter((item) => item.inventory[filters.availability!]);
-  if (typeof filters.minPrice === "number")
-    result = result.filter((item) => item.price >= filters.minPrice!);
-  if (typeof filters.maxPrice === "number")
-    result = result.filter((item) => item.price <= filters.maxPrice!);
+  const { availability, minPrice, maxPrice, specs } = filters;
+  if (availability) result = result.filter((item) => item.inventory[availability]);
+  if (typeof minPrice === "number") result = result.filter((item) => item.price >= minPrice);
+  if (typeof maxPrice === "number") result = result.filter((item) => item.price <= maxPrice);
+  if (specs) {
+    result = result.filter((product) =>
+      Object.entries(specs).every(
+        ([key, values]) => !values.length || values.includes(String(product.specs[key])),
+      ),
+    );
+  }
   switch (filters.sort) {
     case "price-asc":
       result.sort((a, b) => a.price - b.price);
@@ -148,4 +160,27 @@ export function suggest(query: string, productItems = products, categoryItems = 
       href: `/kategorie/${item.slug}`,
     }));
   return [...categoryResults, ...productResults].slice(0, 6);
+}
+
+export function findSearchCorrection(query: string, productItems: Product[] = products) {
+  const normalized = normalizeSearch(query);
+  if (normalized.length < 4) return undefined;
+  const candidates = productItems.flatMap((product) =>
+    [product.name, ...product.aliases].flatMap((label) =>
+      label.split(/\s+/).map((word) => ({ word, normalized: normalizeSearch(word) })),
+    ),
+  );
+  const match = candidates
+    .filter(
+      (candidate) =>
+        candidate.normalized !== normalized &&
+        Math.abs(candidate.normalized.length - normalized.length) <= 2,
+    )
+    .map((candidate) => ({
+      ...candidate,
+      distance: editDistance(candidate.normalized, normalized),
+    }))
+    .filter((candidate) => candidate.distance <= 2)
+    .sort((a, b) => a.distance - b.distance)[0];
+  return match?.word.replace(/[.,;:]$/, "");
 }

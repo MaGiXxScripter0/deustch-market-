@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
+    "check:size": "node scripts/check-file-size.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },

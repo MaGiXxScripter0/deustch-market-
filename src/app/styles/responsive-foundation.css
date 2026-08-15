@@ -1,0 +1,132 @@
+@media (max-width: 1050px) {
+  .header-main {
+    grid-template-columns: 200px 1fr;
+  }
+  .header-actions {
+    display: none;
+  }
+  .hero {
+    grid-template-columns: 1fr;
+  }
+  .hero-visual {
+    min-height: 420px;
+  }
+  .hero-copy {
+    padding: 68px 52px;
+  }
+  .category-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .product-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (max-width: 700px) {
+  .shell {
+    width: min(100% - 28px, 1420px);
+  }
+  .utility-bar,
+  .category-nav {
+    display: none;
+  }
+  .site-header {
+    position: relative;
+  }
+  .header-main {
+    height: auto;
+    grid-template-columns: 1fr;
+    gap: 14px;
+    padding-block: 16px;
+  }
+  .wordmark {
+    justify-content: space-between;
+    flex-direction: row-reverse;
+  }
+  .search-box {
+    height: 46px;
+  }
+  .search-box button {
+    padding-inline: 14px;
+  }
+  .hero {
+    width: 100%;
+    margin: 0;
+  }
+  .hero-copy {
+    padding: 54px 24px 46px;
+  }
+  .hero h1 {
+    font-size: 48px;
+  }
+  .hero-lead {
+    font-size: 16px;
+  }
+  .hero-ctas {
+    width: 100%;
+    flex-direction: column;
+  }
+  .hero-trust {
+    gap: 8px;
+  }
+  .hero-trust b {
+    font-size: 17px;
+  }
+  .hero-visual {
+    min-height: 360px;
+  }
+  .section-block {
+    padding-block: 58px;
+  }
+  .section-heading {
+    align-items: flex-start;
+  }
+  .section-heading > a {
+    display: none;
+  }
+  .category-grid {
+    grid-template-columns: 1fr;
+  }
+  .category-card {
+    min-height: 175px;
+  }
+  .category-card h3 {
+    margin-top: 38px;
+  }
+  .product-grid {
+    gap: 8px;
+  }
+  .product-content {
+    padding: 13px;
+  }
+  .product-content h3 {
+    min-height: 55px;
+    font-size: 14px;
+  }
+  .product-buy-row {
+    display: block;
+  }
+  .product-price {
+    display: block;
+  }
+  .product-price strong {
+    display: block;
+    font-size: 21px;
+  }
+  .product-price span {
+    display: block;
+    margin-top: 4px;
+    text-align: left;
+  }
+  .product-content button {
+    width: 100%;
+    min-width: 0;
+    margin-top: 10px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  * {
+    scroll-behavior: auto !important;
+    transition: none !important;
+    animation: none !important;
+  }
+}

@@ -6,6 +6,10 @@ create type public.fulfillment_type as enum ('pickup', 'delivery');
 
 create sequence public.request_number_seq start 1;
 
+create function public.array_to_search_text(value text[])
+returns text language sql immutable parallel safe set search_path = ''
+as $$ select array_to_string(value, ' ') $$;
+
 create table public.profiles (
   id uuid primary key references auth.users (id) on delete cascade,
   full_name text,
@@ -55,7 +59,7 @@ create table public.products (
   search_document tsvector generated always as (
     setweight(to_tsvector('german', coalesce(name_de, '')), 'A') ||
     setweight(to_tsvector('simple', coalesce(sku, '') || ' ' || coalesce(brand, '')), 'A') ||
-    setweight(to_tsvector('german', coalesce(short_description_de, '') || ' ' || coalesce(description_de, '') || ' ' || array_to_string(search_aliases, ' ')), 'B')
+    setweight(to_tsvector('german', coalesce(short_description_de, '') || ' ' || coalesce(description_de, '') || ' ' || public.array_to_search_text(search_aliases)), 'B')
   ) stored,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
@@ -140,7 +144,7 @@ create index requests_status_idx on public.requests (status, created_at desc);
 create or replace function public.handle_new_user()
 returns trigger
 language plpgsql
-security definer set search_path = public
+security definer set search_path = ''
 as $$
 begin
   insert into public.profiles (id, full_name, phone, role)
@@ -158,7 +162,7 @@ create or replace function public.is_admin()
 returns boolean
 language sql
 stable
-security definer set search_path = public
+security definer set search_path = ''
 as $$
   select exists (
     select 1 from public.profiles
@@ -166,23 +170,163 @@ as $$
   );
 $$;
 
-create or replace function public.search_products(search_query text)
-returns setof public.products
+create or replace function public.search_products(
+  search_query text default '',
+  category_slug text default null,
+  filter_values jsonb default '{}'::jsonb,
+  sort_order text default 'relevance',
+  page_number integer default 1
+)
+returns jsonb
 language sql
 stable
+set search_path = ''
 as $$
-  select p.*
-  from public.products p
-  where p.is_active
-    and (
-      p.search_document @@ websearch_to_tsquery('german', search_query)
-      or extensions.similarity(lower(p.name_de), lower(search_query)) > 0.25
-      or lower(p.sku) = lower(search_query)
+  with matched as materialized (
+    select
+      p.*,
+      ts_rank(p.search_document, websearch_to_tsquery('german', search_query))
+        + extensions.similarity(lower(p.name_de), lower(search_query))
+        + case when lower(c.name_de) like '%' || lower(search_query) || '%' then 0.25 else 0 end
+        + coalesce((
+          select max(extensions.similarity(lower(alias), lower(search_query)))
+          from unnest(p.search_aliases) alias
+        ), 0) as score
+    from public.products p
+    join public.categories c on c.id = p.category_id
+    where p.is_active
+      and c.is_active
+      and (category_slug is null or c.slug = category_slug)
+      and (
+        coalesce(trim(search_query), '') = ''
+        or p.search_document @@ websearch_to_tsquery('german', search_query)
+        or extensions.similarity(lower(p.name_de), lower(search_query)) > 0.25
+        or lower(c.name_de) like '%' || lower(search_query) || '%'
+        or exists (
+          select 1 from unnest(p.search_aliases) alias
+          where extensions.similarity(lower(alias), lower(search_query)) > 0.25
+        )
+        or lower(p.sku) = lower(search_query)
+      )
+      and (
+        not (filter_values ? 'brands')
+        or p.brand in (select jsonb_array_elements_text(filter_values -> 'brands'))
+      )
+      and (
+        not (filter_values ? 'minPrice')
+        or p.price_gross >= (filter_values ->> 'minPrice')::numeric
+      )
+      and (
+        not (filter_values ? 'maxPrice')
+        or p.price_gross <= (filter_values ->> 'maxPrice')::numeric
+      )
+      and (
+        coalesce(filter_values ->> 'availability', '') = ''
+        or exists (
+          select 1
+          from public.inventory i
+          where i.product_id = p.id
+            and i.available_qty > 0
+            and (
+              (filter_values ->> 'availability' = 'pickup' and i.pickup_available)
+              or (filter_values ->> 'availability' = 'delivery' and i.delivery_available)
+            )
+        )
+      )
+      and (
+        not (filter_values ? 'specs')
+        or not exists (
+          select 1
+          from jsonb_each(filter_values -> 'specs') facet
+          where not exists (
+            select 1
+            from jsonb_array_elements_text(facet.value) selected
+            where selected = p.specs ->> facet.key
+          )
+        )
+      )
+  ),
+  paged as (
+    select *
+    from matched
+    order by
+      case when sort_order = 'price-asc' then price_gross end asc,
+      case when sort_order = 'price-desc' then price_gross end desc,
+      case when sort_order = 'name' then name_de end asc,
+      case when sort_order = 'relevance' then score end desc,
+      is_featured desc,
+      name_de asc
+    limit 24
+    offset ((greatest(page_number, 1) - 1) * 24)
+  )
+  select jsonb_build_object(
+    'items', coalesce(
+      (select jsonb_agg(to_jsonb(paged) - 'search_document' - 'score') from paged),
+      '[]'::jsonb
+    ),
+    'total', (select count(*) from matched),
+    'facets', jsonb_build_object(
+      'brands', coalesce(
+        (select jsonb_agg(brand order by brand) from (select distinct brand from matched) brands),
+        '[]'::jsonb
+      ),
+      'minPrice', (select min(price_gross) from matched),
+      'maxPrice', (select max(price_gross) from matched),
+      'specs', coalesce(
+        (
+          select jsonb_object_agg(facet_key, facet_values)
+          from (
+            select facet_key, jsonb_agg(facet_value order by facet_value) as facet_values
+            from (
+              select distinct entry.key as facet_key, entry.value as facet_value
+              from matched
+              cross join lateral jsonb_each_text(matched.specs) entry
+            ) distinct_facets
+            group by facet_key
+          ) grouped_facets
+        ),
+        '{}'::jsonb
+      )
     )
-  order by
-    ts_rank(p.search_document, websearch_to_tsquery('german', search_query)) desc,
-    extensions.similarity(lower(p.name_de), lower(search_query)) desc,
-    p.is_featured desc;
+  );
+$$;
+
+create or replace function public.search_suggestions(search_query text)
+returns table (suggestion_type text, label text, meta text, href text)
+language sql
+stable
+set search_path = ''
+as $$
+  select *
+  from (
+    select 'category'::text, c.name_de, 'Kategorie'::text, '/kategorie/' || c.slug
+    from public.categories c
+    where c.is_active
+      and lower(c.name_de || ' ' || c.description_de) like '%' || lower(search_query) || '%'
+    order by c.sort_order
+    limit 2
+  ) categories
+  union all
+  select *
+  from (
+    select 'product'::text, p.name_de, p.sku, '/produkt/' || p.slug
+    from public.products p
+    where p.is_active
+      and (
+        p.search_document @@ websearch_to_tsquery('german', search_query)
+        or extensions.similarity(lower(p.name_de), lower(search_query)) > 0.25
+        or exists (
+          select 1 from unnest(p.search_aliases) alias
+          where extensions.similarity(lower(alias), lower(search_query)) > 0.25
+        )
+        or lower(p.sku) like lower(search_query) || '%'
+      )
+    order by
+      ts_rank(p.search_document, websearch_to_tsquery('german', search_query)) desc,
+      p.is_featured desc
+    limit 4
+  ) products
+  limit 6;
 $$;
 
 create or replace function public.place_request(
@@ -192,11 +336,12 @@ create or replace function public.place_request(
   p_postal_code text,
   p_fulfillment public.fulfillment_type,
   p_comment text,
+  p_consent boolean,
   p_items jsonb
 )
 returns text
 language plpgsql
-security definer set search_path = public
+security definer set search_path = ''
 as $$
 declare
   v_request_id uuid;
@@ -207,15 +352,55 @@ begin
   if jsonb_typeof(p_items) <> 'array' or jsonb_array_length(p_items) < 1 then
     raise exception 'At least one item is required';
   end if;
+  if jsonb_array_length(p_items) > 100 then
+    raise exception 'Too many items';
+  end if;
+  if length(trim(p_customer_name)) < 2 or length(trim(p_customer_name)) > 120 then
+    raise exception 'Invalid customer name';
+  end if;
+  if length(trim(p_customer_phone)) < 5 or length(trim(p_customer_phone)) > 40 then
+    raise exception 'Invalid phone number';
+  end if;
+  if length(trim(p_customer_email)) > 254
+    or trim(p_customer_email) !~* '^[^[:space:]@]+@[^[:space:]@]+\.[^[:space:]@]+$' then
+    raise exception 'Invalid email address';
+  end if;
+  if length(coalesce(p_comment, '')) > 1000 then
+    raise exception 'Comment is too long';
+  end if;
   if p_postal_code !~ '^\d{5}$' then
     raise exception 'Invalid postal code';
+  end if;
+  if p_consent is not true then
+    raise exception 'Consent is required';
+  end if;
+  if exists (
+    select 1
+    from jsonb_array_elements(p_items) item
+    group by item ->> 'productId'
+    having count(*) > 1
+  ) then
+    raise exception 'Duplicate products are not allowed';
   end if;
 
   select count(*), coalesce(sum(p.price_gross * (item ->> 'quantity')::numeric), 0)
     into v_item_count, v_subtotal
   from jsonb_array_elements(p_items) item
   join public.products p on p.id = (item ->> 'productId')::uuid
-  where p.is_active and (item ->> 'quantity')::numeric > 0 and (item ->> 'quantity')::numeric <= 999;
+  where p.is_active
+    and (item ->> 'quantity')::numeric > 0
+    and (item ->> 'quantity')::numeric <= 999
+    and exists (
+      select 1
+      from public.inventory i
+      join public.locations l on l.id = i.location_id
+      where i.product_id = p.id
+        and i.available_qty >= (item ->> 'quantity')::numeric
+        and (
+          (p_fulfillment = 'pickup' and l.slug = 'berlin-mitte' and i.pickup_available)
+          or (p_fulfillment = 'delivery' and l.slug = 'zentrallager' and i.delivery_available)
+        )
+    );
 
   if v_item_count <> jsonb_array_length(p_items) then
     raise exception 'Invalid or inactive product';
@@ -267,20 +452,35 @@ create policy "categories_public_read" on public.categories for select to anon, 
 create policy "categories_admin_all" on public.categories for all to authenticated using (public.is_admin()) with check (public.is_admin());
 create policy "products_public_read" on public.products for select to anon, authenticated using (is_active or public.is_admin());
 create policy "products_admin_all" on public.products for all to authenticated using (public.is_admin()) with check (public.is_admin());
-create policy "images_public_read" on public.product_images for select to anon, authenticated using (true);
+create policy "images_public_read" on public.product_images for select to anon, authenticated using (
+  exists (select 1 from public.products p where p.id = product_id and (p.is_active or public.is_admin()))
+);
 create policy "images_admin_all" on public.product_images for all to authenticated using (public.is_admin()) with check (public.is_admin());
-create policy "variants_public_read" on public.product_variant_links for select to anon, authenticated using (true);
+create policy "variants_public_read" on public.product_variant_links for select to anon, authenticated using (
+  exists (
+    select 1 from public.products p
+    where p.id = product_id and (p.is_active or public.is_admin())
+  )
+);
 create policy "variants_admin_all" on public.product_variant_links for all to authenticated using (public.is_admin()) with check (public.is_admin());
 create policy "locations_public_read" on public.locations for select to anon, authenticated using (is_active or public.is_admin());
 create policy "locations_admin_all" on public.locations for all to authenticated using (public.is_admin()) with check (public.is_admin());
-create policy "inventory_public_read" on public.inventory for select to anon, authenticated using (true);
+create policy "inventory_public_read" on public.inventory for select to anon, authenticated using (
+  public.is_admin()
+  or (
+    exists (select 1 from public.products p where p.id = product_id and p.is_active)
+    and exists (select 1 from public.locations l where l.id = location_id and l.is_active)
+  )
+);
 create policy "inventory_admin_all" on public.inventory for all to authenticated using (public.is_admin()) with check (public.is_admin());
 create policy "requests_select_own" on public.requests for select to authenticated using (user_id = auth.uid() or public.is_admin());
 create policy "requests_admin_update" on public.requests for update to authenticated using (public.is_admin()) with check (public.is_admin());
 create policy "request_items_select_own" on public.request_items for select to authenticated using (exists (select 1 from public.requests r where r.id = request_id and (r.user_id = auth.uid() or public.is_admin())));
 
-grant execute on function public.search_products(text) to anon, authenticated;
-grant execute on function public.place_request(text, text, text, text, public.fulfillment_type, text, jsonb) to anon, authenticated;
+grant execute on function public.search_products(text, text, jsonb, text, integer) to anon, authenticated;
+grant execute on function public.search_suggestions(text) to anon, authenticated;
+grant execute on function public.place_request(text, text, text, text, public.fulfillment_type, text, boolean, jsonb) to anon, authenticated;
+revoke execute on function public.array_to_search_text(text[]) from public, anon, authenticated;
 revoke update on public.profiles from authenticated;
 grant update (full_name, phone, updated_at) on public.profiles to authenticated;
 

@@ -1,11 +1,76 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname, useSearchParams } from "next/navigation";
 import { MapPin, Menu, ShoppingCart, UserRound, X } from "lucide-react";
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { siteConfig } from "@/lib/site-config";
 import { useCart } from "./cart-provider";
 import { SearchAutocomplete } from "./search-autocomplete";
+
+function CategoryNavigation() {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const pickupIsActive = pathname === "/sortiment" && searchParams.get("availability") === "pickup";
+  const recommendationsAreActive =
+    pathname === "/sortiment" && searchParams.get("sort") === "featured";
+  const catalogIsActive = pathname === "/sortiment" && !pickupIsActive && !recommendationsAreActive;
+
+  const activeClass = (isActive: boolean) => (isActive ? "is-active" : undefined);
+  const currentPage = (isActive: boolean) => (isActive ? "page" : undefined);
+
+  return (
+    <nav className="shell category-nav" aria-label="Hauptnavigation">
+      <Link
+        className={activeClass(catalogIsActive)}
+        href="/sortiment"
+        aria-current={currentPage(catalogIsActive)}
+      >
+        Alle Sortimente
+      </Link>
+      <Link
+        className={activeClass(pickupIsActive)}
+        href="/sortiment?availability=pickup"
+        aria-current={currentPage(pickupIsActive)}
+      >
+        Abholbereit
+      </Link>
+      <Link
+        className={activeClass(recommendationsAreActive)}
+        href="/sortiment?sort=featured"
+        aria-current={currentPage(recommendationsAreActive)}
+      >
+        Unsere Empfehlungen
+      </Link>
+      <Link
+        className={activeClass(pathname === "/versand")}
+        href="/versand"
+        aria-current={currentPage(pathname === "/versand")}
+      >
+        Bestellung & Abholung
+      </Link>
+      <Link
+        className={activeClass(pathname === "/bestellung")}
+        href="/bestellung"
+        aria-current={currentPage(pathname === "/bestellung")}
+      >
+        Bestellung verfolgen
+      </Link>
+    </nav>
+  );
+}
+
+function CategoryNavigationFallback() {
+  return (
+    <nav className="shell category-nav" aria-label="Hauptnavigation">
+      <Link href="/sortiment">Alle Sortimente</Link>
+      <Link href="/sortiment?availability=pickup">Abholbereit</Link>
+      <Link href="/sortiment?sort=featured">Unsere Empfehlungen</Link>
+      <Link href="/versand">Bestellung & Abholung</Link>
+      <Link href="/bestellung">Bestellung verfolgen</Link>
+    </nav>
+  );
+}
 
 export function SiteHeader() {
   const { count, ready } = useCart();
@@ -27,20 +92,26 @@ export function SiteHeader() {
               {siteConfig.shortName}
             </span>
             <span>
-              DEMO
+              BAUMARKT
               <br />
-              BAUSTOFFMARKT
+              NASSAUER LAND
             </span>
           </Link>
           <SearchAutocomplete />
           <nav className="header-actions" aria-label="Schnellzugriff">
-            <Link href="/versand">
-              <MapPin size={19} />
+            <a
+              className="location-selector"
+              aria-label="Abholort auf Google Maps öffnen"
+              href={siteConfig.mapUrl}
+              target="_blank"
+              rel="noreferrer"
+            >
+              <MapPin size={19} aria-hidden="true" />
               <span>
-                <small>Standort</small>
+                <small>Abholung im Markt</small>
                 {siteConfig.storeName}
               </span>
-            </Link>
+            </a>
             <Link href="/konto">
               <UserRound size={19} />
               <span>
@@ -66,14 +137,9 @@ export function SiteHeader() {
             {open ? <X /> : <Menu />}
           </button>
         </div>
-        <nav className="shell category-nav" aria-label="Hauptnavigation">
-          <Link className="catalog-trigger" href="/sortiment">
-            Alle Sortimente
-          </Link>
-          <Link href="/sortiment?availability=pickup">Heute abholen</Link>
-          <Link href="/sortiment?sort=featured">Unsere Empfehlungen</Link>
-          <Link href="/versand">Lieferung & Abholung</Link>
-        </nav>
+        <Suspense fallback={<CategoryNavigationFallback />}>
+          <CategoryNavigation />
+        </Suspense>
         {open && (
           <nav className="mobile-nav" aria-label="Mobiles Menü">
             <Link href="/sortiment" onClick={() => setOpen(false)}>
@@ -86,7 +152,10 @@ export function SiteHeader() {
               Mein Konto
             </Link>
             <Link href="/versand" onClick={() => setOpen(false)}>
-              Lieferung & Abholung
+              Bestellung & Abholung
+            </Link>
+            <Link href="/bestellung" onClick={() => setOpen(false)}>
+              Bestellung verfolgen
             </Link>
           </nav>
         )}

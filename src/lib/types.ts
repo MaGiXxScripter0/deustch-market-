@@ -1,4 +1,4 @@
-export type Fulfillment = "pickup" | "delivery";
+export type Fulfillment = "pickup";
 
 export type Category = {
   id: string;
@@ -29,14 +29,13 @@ export type Product = {
   image: string;
   imageAlt: string;
   featured: boolean;
+  active?: boolean;
   aliases: string[];
   specs: Record<string, string | number | boolean>;
   inventory: {
     berlin: number;
-    warehouse: number;
     pickup: boolean;
-    delivery: boolean;
-    leadTime: string;
+    pickupLeadTime: string;
   };
   variantGroup?: string;
   variantLabel?: string;
@@ -48,8 +47,7 @@ export type RequestPayload = {
   name: string;
   email: string;
   phone: string;
-  postalCode: string;
-  fulfillment: Fulfillment;
+  pickupSlot: string;
   comment?: string;
   consent: boolean;
   items: CartLine[];
@@ -62,5 +60,6 @@ export type CatalogFilters = {
   availability?: Fulfillment;
   minPrice?: number;
   maxPrice?: number;
+  specs?: Record<string, string[]>;
   sort?: "featured" | "price-asc" | "price-desc" | "name";
 };

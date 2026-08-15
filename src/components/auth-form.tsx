@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useCallback, useEffect, useState } from "react";
 import type { ActionState } from "@/lib/actions";
+import { TurnstileWidget } from "./turnstile-widget";
 
 type AuthAction = (state: ActionState, formData: FormData) => Promise<ActionState>;
 export function AuthForm({
@@ -13,6 +14,15 @@ export function AuthForm({
   mode: "login" | "signup" | "reset";
 }) {
   const [state, formAction, pending] = useActionState(action, {});
+  const [turnstileToken, setTurnstileToken] = useState("");
+  const [resetKey, setResetKey] = useState(0);
+  const handleTokenChange = useCallback((token: string) => setTurnstileToken(token), []);
+  useEffect(() => {
+    if (state.error) {
+      setTurnstileToken("");
+      setResetKey((key) => key + 1);
+    }
+  }, [state.error]);
   return (
     <form className="auth-form" action={formAction}>
       {mode === "signup" && (
@@ -43,6 +53,16 @@ export function AuthForm({
           />
         </label>
       )}
+      {mode !== "reset" && (
+        <>
+          <input name="cf-turnstile-response" type="hidden" value={turnstileToken} readOnly />
+          <TurnstileWidget
+            action={mode === "login" ? "login" : "signup"}
+            onTokenChange={handleTokenChange}
+            resetKey={resetKey}
+          />
+        </>
+      )}
       {state.error && (
         <p className="form-error" role="alert">
           {state.error}
@@ -53,7 +73,11 @@ export function AuthForm({
           {state.success}
         </p>
       )}
-      <button className="button primary" type="submit" disabled={pending}>
+      <button
+        className="button primary"
+        type="submit"
+        disabled={pending || (mode !== "reset" && !turnstileToken)}
+      >
         {pending
           ? "Bitte warten …"
           : mode === "login"

@@ -2,12 +2,15 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { SearchX } from "lucide-react";
 import { ProductCard } from "@/components/product-card";
-import { searchProducts } from "@/lib/catalog";
+import { findSearchCorrection, searchProducts } from "@/lib/catalog";
 import { getCatalogData } from "@/lib/catalog-repository";
+import { siteConfig } from "@/lib/site-config";
 
 export const metadata: Metadata = {
-  title: "Produktsuche | Demo Baustoffmarkt",
+  title: `Produktsuche | ${siteConfig.name}`,
   description: "Baustoffe nach Produktname, Kategorie oder Artikelnummer finden.",
+  alternates: { canonical: "/suche" },
+  robots: { index: false, follow: true },
 };
 export default async function SearchPage({
   searchParams,
@@ -17,6 +20,7 @@ export default async function SearchPage({
   const query = (await searchParams).q?.trim() ?? "";
   const { categories, products } = await getCatalogData();
   const results = searchProducts(query, products, categories);
+  const correction = findSearchCorrection(query, products);
   return (
     <main className="shell page-main">
       <div className="page-hero search-page-hero">
@@ -31,10 +35,16 @@ export default async function SearchPage({
             : "Suchen Sie nach Produkt, Kategorie, Marke oder Artikelnummer."}
         </p>
       </div>
+      {correction && (
+        <div className="search-correction">
+          Meinten Sie{" "}
+          <Link href={`/suche?q=${encodeURIComponent(correction)}`}>„{correction}”</Link>?
+        </div>
+      )}
       {results.length > 0 ? (
         <div className="product-grid catalog-grid search-results">
-          {results.map((product) => (
-            <ProductCard key={product.id} product={product} />
+          {results.map((product, index) => (
+            <ProductCard key={product.id} product={product} eager={index < 8} />
           ))}
         </div>
       ) : (

@@ -1,0 +1,298 @@
+@media (max-width: 1050px) {
+  .catalog-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .product-detail {
+    grid-template-columns: 1fr;
+  }
+  .product-main-image {
+    min-height: 0;
+  }
+  .cart-layout,
+  .request-layout {
+    grid-template-columns: 1fr;
+  }
+  .cart-summary,
+  .request-summary {
+    position: static;
+  }
+  .admin-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .profile-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+  .mobile-menu-button {
+    position: absolute;
+    top: 18px;
+    right: 14px;
+    display: grid;
+    place-items: center;
+    border: 0;
+    background: transparent;
+  }
+  .wordmark {
+    padding-right: 42px;
+    justify-content: flex-start;
+    flex-direction: row;
+  }
+  .mobile-nav {
+    display: flex;
+    flex-direction: column;
+    padding: 12px 20px 20px;
+    border-top: 1px solid var(--line);
+  }
+  .mobile-nav a {
+    padding: 12px 0;
+    border-bottom: 1px solid var(--line);
+    font-size: 13px;
+    font-weight: 700;
+  }
+  .service-strip > div,
+  .project-banner,
+  .footer-grid,
+  .product-information,
+  .auth-page,
+  .account-grid,
+  .service-cards {
+    grid-template-columns: 1fr;
+  }
+  .profile-form {
+    grid-template-columns: 1fr;
+  }
+  .admin-category-list.editable > details > summary {
+    min-width: 720px;
+  }
+  .service-strip > div > div {
+    min-height: 84px;
+    border-left: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+  }
+  .project-banner {
+    width: 100%;
+    margin-block: 50px 0;
+    padding: 48px 24px;
+    gap: 40px;
+  }
+  .footer-grid {
+    gap: 34px;
+  }
+  .footer-bottom {
+    padding-block: 20px;
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .page-hero {
+    padding-top: 48px;
+  }
+  .page-hero h1,
+  .legal-page > h1,
+  .request-success h1,
+  .auth-panel h1,
+  .account-guest h1,
+  .account-head h1,
+  .admin-heading h1 {
+    font-size: 42px;
+  }
+  .catalog-layout {
+    display: block;
+  }
+  .mobile-filter-trigger {
+    width: 100%;
+    height: 46px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border: 1px solid var(--ink);
+    background: white;
+    font-weight: 800;
+  }
+  .filter-drawer {
+    display: none;
+  }
+  .filter-drawer.open {
+    position: fixed;
+    inset: 0;
+    z-index: 80;
+    display: block;
+    overflow: auto;
+    background: white;
+    padding: 24px;
+  }
+  .filter-mobile-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--line);
+  }
+  .filter-mobile-head button {
+    border: 0;
+    background: transparent;
+  }
+  .filter-mobile-apply {
+    position: sticky;
+    bottom: 0;
+    width: 100%;
+    min-height: 48px;
+    display: block;
+    margin-top: 18px;
+    border: 0;
+    background: var(--accent);
+    color: white;
+    font-weight: 800;
+  }
+  .catalog-toolbar {
+    margin-top: 22px;
+  }
+  .catalog-toolbar label {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .catalog-grid,
+  .product-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .product-main-image {
+    min-height: 0;
+  }
+  .product-page {
+    padding-top: 24px;
+  }
+  .product-detail {
+    gap: 24px;
+  }
+  .product-buy h1 {
+    font-size: 40px;
+  }
+  .calculator {
+    margin-block: 48px;
+    padding: 28px 20px;
+    grid-template-columns: 1fr;
+  }
+  .calculator-fields {
+    grid-template-columns: 1fr;
+  }
+  .calculator-result {
+    grid-template-columns: 1fr;
+  }
+  .calculator-result b {
+    grid-row: auto;
+    grid-column: auto;
+  }
+  .cart-line {
+    grid-template-columns: 84px 1fr;
+  }
+  .cart-thumb {
+    height: 84px;
+  }
+  .quantity-control {
+    grid-column: 2;
+  }
+  .cart-price {
+    grid-column: 1 / -1;
+    align-items: flex-end;
+  }
+  .request-fields > section {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+  .form-grid,
+  .fulfillment-options {
+    grid-template-columns: 1fr;
+  }
+  .pickup-time {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+  .pickup-time input {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+  .tracking-form {
+    grid-template-columns: 1fr;
+  }
+  .auth-aside {
+    padding: 60px 24px;
+  }
+  .auth-panel {
+    padding: 60px 0;
+  }
+  .account-head,
+  .admin-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 20px;
+  }
+  .admin-shell {
+    grid-template-columns: 1fr;
+  }
+  .admin-nav {
+    min-height: auto;
+  }
+  .admin-nav > p,
+  .admin-nav > a {
+    display: none;
+  }
+  .admin-nav nav {
+    flex-direction: row;
+    overflow-x: auto;
+  }
+  .admin-content {
+    width: min(100% - 28px, 1200px);
+  }
+  .admin-stats,
+  .admin-shortcuts {
+    grid-template-columns: 1fr;
+  }
+  .admin-new-orders {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+  .admin-order-meta {
+    grid-template-columns: 1fr;
+  }
+  .admin-order-lines article {
+    grid-template-columns: 1fr auto;
+    gap: 14px;
+  }
+  .admin-order-lines article > span:last-child {
+    grid-column: 2;
+  }
+  .admin-order-status {
+    width: 100%;
+  }
+  .admin-order-status select,
+  .admin-order-status button {
+    flex: 1;
+  }
+  .admin-form-grid.four {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .admin-table {
+    overflow-x: auto;
+  }
+  .admin-table-head,
+  .admin-table > article {
+    min-width: 760px;
+  }
+  .request-list article,
+  .request-admin-list article {
+    grid-template-columns: 1fr;
+  }
+  .request-detail-lines article {
+    grid-template-columns: 1fr 1fr;
+  }
+  .service-cards article {
+    border-left: 0;
+  }
+  .admin-form-grid,
+  .admin-form-grid.four,
+  .admin-image-row {
+    grid-template-columns: 1fr;
+  }
+}

@@ -8,10 +8,12 @@ export function AddToCart({
   productId,
   quantity = 1,
   compact = false,
+  disabled = false,
 }: {
   productId: string;
   quantity?: number;
   compact?: boolean;
+  disabled?: boolean;
 }) {
   const { add } = useCart();
   const [added, setAdded] = useState(false);
@@ -19,6 +21,7 @@ export function AddToCart({
     <button
       className={compact ? "add-button compact" : "add-button"}
       type="button"
+      disabled={disabled}
       onClick={() => {
         add(productId, quantity);
         setAdded(true);
@@ -26,7 +29,9 @@ export function AddToCart({
       }}
       aria-live="polite"
     >
-      {added ? (
+      {disabled ? (
+        <>Zur Abholung nicht verfügbar</>
+      ) : added ? (
         <>
           <Check size={17} /> Hinzugefügt
         </>

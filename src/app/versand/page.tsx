@@ -1,46 +1,49 @@
 import type { Metadata } from "next";
-import { Clock3, MapPin, PackageCheck, Truck } from "lucide-react";
-export const metadata: Metadata = { title: "Lieferung & Abholung | Demo Baustoffmarkt" };
+import { Clock3, MapPin, PackageCheck, WalletCards } from "lucide-react";
+import { siteConfig } from "@/lib/site-config";
+
+export const metadata: Metadata = { title: `Bestellung & Abholung | ${siteConfig.name}` };
 export default function ShippingPage() {
   return (
     <main className="shell legal-page service-page">
       <p className="kicker">SERVICE</p>
-      <h1>Lieferung & Abholung.</h1>
+      <h1>Bestellung & Abholung.</h1>
       <p className="legal-lead">
-        Vom einzelnen Paket bis zur Palette: Wir stimmen die passende Übergabe persönlich mit Ihnen
-        ab.
+        Bestellen Sie online, wir stellen die Ware für Sie zusammen und Sie holen sie im Markt ab.
       </p>
       <div className="service-cards">
         <article>
           <MapPin />
-          <h2>Abholung Berlin-Mitte</h2>
+          <h2>Abholung im {siteConfig.pickupLocationName}</h2>
           <p>
-            Verfügbare Ware stellen wir üblicherweise innerhalb von zwei Stunden bereit. Die
-            Reservierung gilt erst nach unserer Bestätigung.
+            Verfügbare Ware stellen wir üblicherweise innerhalb von zwei Stunden bereit. Sie
+            erhalten eine Nachricht, sobald Ihre Bestellung abholbereit ist.
           </p>
+          <a href={siteConfig.mapUrl} target="_blank" rel="noreferrer">
+            {siteConfig.address} auf Google Maps öffnen
+          </a>
         </article>
         <article>
-          <Truck />
-          <h2>Baustellenlieferung</h2>
+          <WalletCards />
+          <h2>Zahlung bei Abholung</h2>
           <p>
-            Liefertermin, Fahrzeugtyp und Kosten hängen von Gewicht, Volumen, Postleitzahl und
-            Zufahrt ab und werden im Angebot ausgewiesen.
+            Bezahlen Sie die Bestellung erst bei der Ausgabe im Markt. Online-Zahlung und Lieferung
+            bieten wir derzeit nicht an.
           </p>
         </article>
         <article>
           <PackageCheck />
-          <h2>Zentrallager</h2>
+          <h2>Bestand im Markt</h2>
           <p>
-            Nicht lokal verfügbare Ware erreicht Berlin-Mitte oder Ihre Baustelle in der Regel
-            innerhalb von zwei bis vier Werktagen.
+            Wir zeigen Ihnen im Shop, welche Menge aktuell im Markt für die Abholung verfügbar ist.
           </p>
         </article>
         <article>
           <Clock3 />
-          <h2>Persönliche Abstimmung</h2>
+          <h2>Bestellstatus</h2>
           <p>
-            Nach Ihrer unverbindlichen Anfrage prüfen wir Bestand und Logistik und melden uns mit
-            einem transparenten Angebot.
+            Nach der Bestellung sehen wir sofort, was zusammengestellt werden muss. Sie erhalten
+            eine Nachricht, sobald Sie vorbeikommen können.
           </p>
         </article>
       </div>

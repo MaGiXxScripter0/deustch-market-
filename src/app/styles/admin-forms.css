@@ -1,0 +1,107 @@
+.admin-access-gate {
+  width: min(100% - 40px, 720px);
+  margin: 12vh auto;
+  padding: clamp(32px, 6vw, 72px);
+  border: 1px solid var(--line);
+  background: white;
+}
+.admin-access-gate h1 {
+  margin: 12px 0 18px;
+  font-size: clamp(36px, 6vw, 64px);
+  line-height: 0.95;
+  letter-spacing: -0.05em;
+}
+.admin-access-gate > div {
+  display: flex;
+  gap: 10px;
+  margin-top: 28px;
+}
+.admin-product-form {
+  display: grid;
+  gap: 18px;
+}
+.admin-product-form section {
+  padding: 28px;
+  border: 1px solid var(--line);
+  background: white;
+}
+.admin-product-form h2 {
+  margin: 0 0 22px;
+  font-size: 18px;
+}
+.admin-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+.admin-form-grid.four {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.admin-form-grid .wide {
+  grid-column: 1 / -1;
+}
+.admin-product-form label,
+.admin-image-row > div {
+  display: grid;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+}
+.admin-product-form input,
+.admin-product-form select,
+.admin-product-form textarea {
+  width: 100%;
+  padding: 12px 13px;
+  border: 1px solid var(--line);
+  border-radius: 0;
+  background: white;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 500;
+}
+.admin-product-form textarea {
+  resize: vertical;
+  line-height: 1.55;
+}
+.admin-image-row {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 24px;
+}
+.admin-image-preview {
+  position: relative;
+  min-height: 180px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: var(--surface);
+  color: var(--muted);
+}
+.admin-image-preview img {
+  object-fit: cover;
+}
+.upload-button {
+  min-height: 42px;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed var(--muted);
+  cursor: pointer;
+}
+.upload-button input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+.admin-form-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 18px;
+}
+.admin-form-actions .button {
+  display: inline-flex;
+  gap: 8px;
+}

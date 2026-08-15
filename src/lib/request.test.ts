@@ -1,0 +1,49 @@
+import { describe, expect, it } from "vitest";
+import { products } from "./catalog-data";
+import {
+  calculateRequestSubtotal,
+  hasUnavailableLines,
+  requestSchema,
+  resolveRequestLines,
+} from "./request";
+
+const validPayload = {
+  name: "Anna Beispiel",
+  email: "anna@example.de",
+  phone: "+49 30 000000",
+  pickupSlot: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),
+  consent: true as const,
+  items: [{ productId: products[0].id, quantity: 2 }],
+};
+
+describe("request validation", () => {
+  it("rejects missing consent", () => {
+    expect(requestSchema.safeParse({ ...validPayload, consent: false }).success).toBe(false);
+  });
+
+  it("ignores a price supplied by the browser and recalculates from the catalog", () => {
+    const parsed = requestSchema.parse({
+      ...validPayload,
+      items: [{ ...validPayload.items[0], price: 0.01 }],
+    });
+    const lines = resolveRequestLines(parsed, products);
+
+    expect(parsed.items[0]).not.toHaveProperty("price");
+    expect(calculateRequestSubtotal(lines)).toBe(products[0].price * 2);
+  });
+
+  it("rejects quantities above current location stock", () => {
+    const parsed = requestSchema.parse({
+      ...validPayload,
+      items: [{ productId: products[0].id, quantity: products[0].inventory.berlin + 1 }],
+    });
+
+    expect(hasUnavailableLines(parsed, resolveRequestLines(parsed, products))).toBe(true);
+  });
+
+  it("rejects duplicate product lines", () => {
+    const duplicate = { ...validPayload, items: [validPayload.items[0], validPayload.items[0]] };
+
+    expect(requestSchema.safeParse(duplicate).success).toBe(false);
+  });
+});

@@ -1,6 +1,9 @@
 import { unstable_cache } from "next/cache";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { categories as fallbackCategories, products as fallbackProducts } from "./catalog-data";
-import { createPublicClient } from "./supabase/server";
+import { createClient, createPublicClient } from "./supabase/server";
+import { siteConfig } from "./site-config";
+import type { Database } from "./supabase/database.types";
 import type { Category, Product } from "./types";
 
 type DatabaseCategory = {
@@ -15,7 +18,6 @@ type DatabaseCategory = {
 type DatabaseInventory = {
   available_qty: number | string;
   pickup_available: boolean;
-  delivery_available: boolean;
   lead_time_de: string;
   locations: { slug?: string } | Array<{ slug?: string }> | null;
 };
@@ -42,6 +44,7 @@ type DatabaseProduct = {
   variant_group: string | null;
   variant_label: string | null;
   is_featured: boolean;
+  is_active: boolean;
   inventory: DatabaseInventory[] | null;
 };
 
@@ -61,6 +64,10 @@ async function readCatalog(): Promise<CatalogData> {
   if (!supabase)
     return { categories: fallbackCategories, products: fallbackProducts, source: "demo" };
 
+  return queryCatalog(supabase);
+}
+
+async function queryCatalog(supabase: SupabaseClient<Database>): Promise<CatalogData> {
   const [categoryResult, productResult] = await Promise.all([
     supabase
       .from("categories")
@@ -69,7 +76,7 @@ async function readCatalog(): Promise<CatalogData> {
     supabase
       .from("products")
       .select(
-        "id, category_id, sku, slug, brand, name_de, short_description_de, description_de, price_gross, sale_unit, base_price, base_unit, base_quantity, coverage_per_unit, weight_kg, primary_image_url, specs, search_aliases, variant_group, variant_label, is_featured, inventory(available_qty, pickup_available, delivery_available, lead_time_de, locations(slug))",
+        "id, category_id, sku, slug, brand, name_de, short_description_de, description_de, price_gross, sale_unit, base_price, base_unit, base_quantity, coverage_per_unit, weight_kg, primary_image_url, specs, search_aliases, variant_group, variant_label, is_featured, is_active, inventory(available_qty, pickup_available, lead_time_de, locations(slug))",
       )
       .order("is_featured", { ascending: false }),
   ]);
@@ -99,8 +106,7 @@ async function readCatalog(): Promise<CatalogData> {
   const products: Product[] = (productResult.data as unknown as DatabaseProduct[]).map(
     (product) => {
       const inventory = product.inventory ?? [];
-      const berlin = inventory.find((item) => locationSlug(item) === "berlin-mitte");
-      const warehouse = inventory.find((item) => locationSlug(item) === "zentrallager");
+      const berlin = inventory.find((item) => locationSlug(item) === siteConfig.pickupLocationSlug);
       const image =
         product.primary_image_url ??
         fallbackProducts.find((item) => item.id === product.id)?.image ??
@@ -125,14 +131,13 @@ async function readCatalog(): Promise<CatalogData> {
         image,
         imageAlt: `${product.name_de} – Produktabbildung`,
         featured: product.is_featured,
+        active: product.is_active,
         aliases: product.search_aliases ?? [],
         specs: product.specs ?? {},
         inventory: {
           berlin: Number(berlin?.available_qty ?? 0),
-          warehouse: Number(warehouse?.available_qty ?? 0),
           pickup: Boolean(berlin?.pickup_available),
-          delivery: inventory.some((item) => item.delivery_available),
-          leadTime: warehouse?.lead_time_de || berlin?.lead_time_de || "Auf Anfrage",
+          pickupLeadTime: berlin?.lead_time_de || "Abholung auf Anfrage",
         },
         variantGroup: product.variant_group ?? undefined,
         variantLabel: product.variant_label ?? undefined,
@@ -143,7 +148,14 @@ async function readCatalog(): Promise<CatalogData> {
   return { categories, products, source: "supabase" };
 }
 
-export const getCatalogData = unstable_cache(readCatalog, ["catalog"], {
+export const getCatalogData = unstable_cache(readCatalog, ["catalog-v4"], {
   revalidate: 900,
   tags: ["catalog"],
 });
+
+export async function getAdminCatalogData(): Promise<CatalogData> {
+  const supabase = await createClient();
+  if (!supabase)
+    return { categories: fallbackCategories, products: fallbackProducts, source: "demo" };
+  return queryCatalog(supabase);
+}

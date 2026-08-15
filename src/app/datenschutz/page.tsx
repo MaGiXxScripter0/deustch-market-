@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { siteConfig } from "@/lib/site-config";
-export const metadata: Metadata = { title: "Datenschutz | Demo Baustoffmarkt" };
+export const metadata: Metadata = { title: `Datenschutz | ${siteConfig.name}` };
 export default function PrivacyPage() {
   return (
     <main className="shell legal-page">
@@ -18,7 +18,7 @@ export default function PrivacyPage() {
       <section>
         <h2>2. Hosting und Datenbank</h2>
         <p>
-          Die Website wird über Vercel bereitgestellt. Konto-, Katalog- und Anfragedaten werden in
+          Die Website wird über Vercel bereitgestellt. Konto-, Katalog- und Bestelldaten werden in
           Supabase gespeichert. Dabei können technische Verbindungsdaten verarbeitet werden. Vor dem
           Produktivbetrieb sind Auftragsverarbeitungsverträge, Speicherregionen und
           Drittlandtransfers abschließend zu dokumentieren.
@@ -28,15 +28,15 @@ export default function PrivacyPage() {
         <h2>3. Kundenkonto</h2>
         <p>
           Bei der Registrierung verarbeiten wir E-Mail-Adresse, verschlüsseltes Passwort sowie
-          freiwillig Name und Telefonnummer zur Bereitstellung des Kontos und der Anfragehistorie.
+          freiwillig Name und Telefonnummer zur Bereitstellung des Kontos und der Bestellhistorie.
         </p>
       </section>
       <section>
-        <h2>4. Angebotsanfragen</h2>
+        <h2>4. Bestellungen zur Abholung</h2>
         <p>
-          Zur Bearbeitung einer Anfrage verarbeiten wir Name, E-Mail-Adresse, Telefonnummer,
-          Postleitzahl, gewünschte Produkte, Lieferart und Ihre optionale Nachricht. Rechtsgrundlage
-          ist die Durchführung vorvertraglicher Maßnahmen.
+          Zur Bearbeitung einer Bestellung verarbeiten wir Name, E-Mail-Adresse, Telefonnummer,
+          ausgewählte Produkte und Ihre optionale Nachricht. Rechtsgrundlage und Speicherfristen
+          müssen vor dem Produktivbetrieb rechtlich geprüft und konkretisiert werden.
         </p>
       </section>
       <section>

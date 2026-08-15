@@ -18,20 +18,20 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
-  title: `${siteConfig.name} | Baustoffe in Berlin`,
+  title: `${siteConfig.name} | Baustoffe in Nassau`,
   description: siteConfig.description,
   applicationName: siteConfig.name,
   openGraph: {
     type: "website",
     locale: "de_DE",
     siteName: siteConfig.name,
-    title: `${siteConfig.name} | Baustoffe in Berlin`,
+    title: `${siteConfig.name} | Baustoffe in Nassau`,
     description: siteConfig.description,
     images: [{ url: "/og.png", width: 1200, height: 630, alt: siteConfig.name }],
   },
   twitter: {
     card: "summary_large_image",
-    title: `${siteConfig.name} | Baustoffe in Berlin`,
+    title: `${siteConfig.name} | Baustoffe in Nassau`,
     description: siteConfig.description,
     images: ["/og.png"],
   },
@@ -39,7 +39,11 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="de" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
+    <html
+      lang="de"
+      data-scroll-behavior="smooth"
+      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+    >
       <body className="min-h-full flex flex-col">
         <CartProvider>
           <SiteHeader />

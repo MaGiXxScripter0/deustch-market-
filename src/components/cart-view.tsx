@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Minus, Plus, Trash2 } from "lucide-react";
 import { euro } from "@/lib/catalog";
+import { siteConfig } from "@/lib/site-config";
 import type { Product } from "@/lib/types";
 import { useCart } from "./cart-provider";
 
@@ -19,7 +20,7 @@ export function CartView({ products }: { products: Product[] }) {
       <div className="empty-cart">
         <span>0</span>
         <h2>Ihr Warenkorb ist noch leer.</h2>
-        <p>Entdecken Sie 24 ausgewählte Baustoffe für Ihr nächstes Vorhaben.</p>
+        <p>Entdecken Sie Baustoffe für Ihr nächstes Vorhaben und holen Sie sie im Markt ab.</p>
         <Link className="button primary" href="/sortiment">
           Zum Sortiment
         </Link>
@@ -42,8 +43,8 @@ export function CartView({ products }: { products: Product[] }) {
               </h2>
               <small>
                 {product!.inventory.pickup
-                  ? "Heute in Berlin-Mitte abholbar"
-                  : product!.inventory.leadTime}
+                  ? `Heute in ${siteConfig.storeName} abholbar`
+                  : product!.inventory.pickupLeadTime}
               </small>
             </div>
             <div className="quantity-control">
@@ -88,19 +89,19 @@ export function CartView({ products }: { products: Product[] }) {
           <strong>{euro.format(subtotal)}</strong>
         </div>
         <div>
-          <span>Versand</span>
-          <em>Nach Vereinbarung</em>
+          <span>Abholung im Markt</span>
+          <em>Kostenlos</em>
         </div>
         <div className="summary-total">
-          <span>Voraussichtliche Summe</span>
+          <span>Gesamtsumme</span>
           <strong>{euro.format(subtotal)}</strong>
         </div>
         <p>
-          inkl. 19 % MwSt. Die endgültigen Lieferkosten und Verfügbarkeit bestätigen wir in Ihrem
-          Angebot.
+          inkl. 19 % MwSt. Wir prüfen die Verfügbarkeit erneut und stellen Ihre Bestellung zur
+          Abholung zusammen.
         </p>
         <Link className="button primary" href="/anfrage">
-          Angebot anfragen
+          Zur Bestellung
         </Link>
         <Link className="continue-shopping" href="/sortiment">
           Weiter einkaufen

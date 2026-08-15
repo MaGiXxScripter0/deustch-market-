@@ -1,20 +1,23 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, Calculator, Clock3, PackageCheck, Truck } from "lucide-react";
+import type { Metadata } from "next";
+import { ArrowRight, Calculator, Clock3, PackageCheck } from "lucide-react";
 import { ProductCard } from "@/components/product-card";
 import { getCatalogData } from "@/lib/catalog-repository";
+
+export const metadata: Metadata = { alternates: { canonical: "/" } };
 
 export default async function Home() {
   const { categories, products } = await getCatalogData();
   return (
-    <main>
+    <main className="home-page">
       <section className="hero shell">
         <div className="hero-copy">
           <p className="kicker">BAUSTOFFE. KLAR AUSGEWÄHLT.</p>
           <h1>Material, das Ihr Projekt voranbringt.</h1>
           <p className="hero-lead">
-            Transparente Preise, verlässliche Bestände und die richtige Menge — vom ersten Sack bis
-            zur ganzen Palette.
+            Klare Preise, verlässliche Bestände und alles für die Abholung im Markt — vom ersten
+            Sack bis zur ganzen Palette.
           </p>
           <div className="hero-ctas">
             <Link className="button primary" href="/sortiment">
@@ -41,12 +44,13 @@ export default async function Home() {
             src="https://images.unsplash.com/photo-1625337902947-dc6f0eef6a4f?auto=format&fit=crop&w=1500&q=85"
             alt="Gestapelte Mauerziegel auf einer Palette"
             fill
-            priority
+            loading="eager"
+            fetchPriority="high"
             sizes="(max-width:900px) 100vw, 48vw"
           />
           <div className="hero-note">
-            <span>Berlin-Mitte</span>
-            <b>Direkt verfügbar</b>
+            <span>Abholung im Markt</span>
+            <b>Wir stellen für Sie zusammen</b>
           </div>
         </div>
       </section>
@@ -56,7 +60,7 @@ export default async function Home() {
             <PackageCheck />
             <span>
               <b>Bestand geprüft</b>
-              <small>Berlin-Mitte & Zentrallager</small>
+              <small>Für die Abholung im Markt</small>
             </span>
           </div>
           <div>
@@ -67,10 +71,10 @@ export default async function Home() {
             </span>
           </div>
           <div>
-            <Truck />
+            <PackageCheck />
             <span>
-              <b>Baustellenlieferung</b>
-              <small>Termin nach persönlicher Abstimmung</small>
+              <b>Einfach bestellen</b>
+              <small>Wir informieren Sie, sobald alles bereitliegt</small>
             </span>
           </div>
         </div>
@@ -115,8 +119,8 @@ export default async function Home() {
             {products
               .filter((item) => item.featured)
               .slice(0, 8)
-              .map((product) => (
-                <ProductCard key={product.id} product={product} />
+              .map((product, index) => (
+                <ProductCard key={product.id} product={product} eager={index < 8} />
               ))}
           </div>
         </div>

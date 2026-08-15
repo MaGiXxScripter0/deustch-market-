@@ -9,15 +9,15 @@ export function SiteFooter() {
           <Link className="wordmark footer-logo" href="/">
             <span className="wordmark-block">{siteConfig.shortName}</span>
             <span>
-              DEMO
+              BAUMARKT
               <br />
-              BAUSTOFFMARKT
+              NASSAUER LAND
             </span>
           </Link>
           <p>
             Baustoffe. Klar ausgewählt.
             <br />
-            White-label Demo für den deutschen Markt.
+            Online bestellen, im Markt abholen.
           </p>
         </div>
         <div>
@@ -28,9 +28,10 @@ export function SiteFooter() {
         </div>
         <div>
           <h2>Service</h2>
-          <Link href="/versand">Lieferung & Abholung</Link>
+          <Link href="/versand">Bestellung & Abholung</Link>
+          <Link href="/bestellung">Bestellung verfolgen</Link>
           <Link href="/konto">Mein Konto</Link>
-          <Link href="/anfrage">Angebot anfragen</Link>
+          <Link href="/anfrage">Bestellung aufgeben</Link>
         </div>
         <div>
           <h2>Rechtliches</h2>
@@ -41,7 +42,7 @@ export function SiteFooter() {
       </div>
       <div className="shell footer-bottom">
         <span>© 2026 {siteConfig.name}</span>
-        <span>Alle Preise inkl. 19 % MwSt., zzgl. Versandkosten.</span>
+        <span>Alle Preise inkl. 19 % MwSt. · Nur Abholung im Markt.</span>
       </div>
     </footer>
   );

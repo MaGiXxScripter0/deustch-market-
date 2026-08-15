@@ -1,10 +1,10 @@
 import { notFound } from "next/navigation";
 import { AdminProductForm } from "@/components/admin-product-form";
-import { getCatalogData } from "@/lib/catalog-repository";
+import { getAdminCatalogData } from "@/lib/catalog-repository";
 
 export default async function EditProductPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { categories, products } = await getCatalogData();
+  const { categories, products } = await getAdminCatalogData();
   const product = products.find((item) => item.id === id);
   if (!product) notFound();
   return (

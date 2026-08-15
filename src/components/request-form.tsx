@@ -1,17 +1,27 @@
 "use client";
 
-import { CheckCircle2, LoaderCircle } from "lucide-react";
+import { CalendarClock, CheckCircle2, LoaderCircle, MapPin, WalletCards } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { euro } from "@/lib/catalog";
+import { siteConfig } from "@/lib/site-config";
 import type { Product } from "@/lib/types";
 import { useCart } from "./cart-provider";
+import { TurnstileWidget } from "./turnstile-widget";
 
 export function RequestForm({ products }: { products: Product[] }) {
   const { lines, clear, ready } = useCart();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState<{ requestNumber: string; demo?: boolean } | null>(null);
+  const [turnstileToken, setTurnstileToken] = useState("");
+  const [resetKey, setResetKey] = useState(0);
+  const handleTokenChange = useCallback((token: string) => setTurnstileToken(token), []);
+  const [success, setSuccess] = useState<{
+    requestNumber: string;
+    pickupCode: string;
+    pickupSlot: string;
+    demo?: boolean;
+  } | null>(null);
   const subtotal = lines.reduce(
     (sum, line) =>
       sum + (products.find((item) => item.id === line.productId)?.price ?? 0) * line.quantity,
@@ -19,6 +29,10 @@ export function RequestForm({ products }: { products: Product[] }) {
   );
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!turnstileToken) {
+      setError("Bitte schließen Sie die Sicherheitsprüfung ab.");
+      return;
+    }
     setLoading(true);
     setError("");
     const form = new FormData(event.currentTarget);
@@ -26,12 +40,12 @@ export function RequestForm({ products }: { products: Product[] }) {
       name: form.get("name"),
       email: form.get("email"),
       phone: form.get("phone"),
-      postalCode: form.get("postalCode"),
-      fulfillment: form.get("fulfillment"),
+      pickupSlot: new Date(String(form.get("pickupSlot"))).toISOString(),
       comment: form.get("comment"),
       consent: form.get("consent") === "on",
       website: form.get("website"),
       items: lines,
+      "cf-turnstile-response": turnstileToken,
     };
     try {
       const response = await fetch("/api/requests", {
@@ -45,8 +59,10 @@ export function RequestForm({ products }: { products: Product[] }) {
       clear();
     } catch (caught) {
       setError(
-        caught instanceof Error ? caught.message : "Die Anfrage konnte nicht gesendet werden.",
+        caught instanceof Error ? caught.message : "Die Bestellung konnte nicht gesendet werden.",
       );
+      setTurnstileToken("");
+      setResetKey((key) => key + 1);
     } finally {
       setLoading(false);
     }
@@ -55,16 +71,22 @@ export function RequestForm({ products }: { products: Product[] }) {
     return (
       <div className="request-success">
         <CheckCircle2 size={54} />
-        <p className="kicker">ANFRAGE ERHALTEN</p>
-        <h1>Vielen Dank für Ihre Anfrage.</h1>
+        <p className="kicker">BESTELLUNG EINGEGANGEN</p>
+        <h1>Vielen Dank für Ihre Bestellung.</h1>
         <p>
-          Ihre Referenz lautet <strong>{success.requestNumber}</strong>. Wir melden uns
-          üblicherweise innerhalb eines Werktags.
+          Ihre Bestellnummer lautet <strong>{success.requestNumber}</strong>. Wir stellen Ihre Ware
+          zusammen und informieren Sie, sobald sie abgeholt werden kann.
         </p>
+        <div className="pickup-success-details">
+          <span>Abholung gewünscht</span>
+          <strong>{new Date(success.pickupSlot).toLocaleString("de-DE")}</strong>
+          <span>Abholcode</span>
+          <strong>{success.pickupCode}</strong>
+        </div>
         {success.demo && (
           <div className="demo-notice">
-            Demo-Modus: Die Datenbankmigration ist noch nicht angewendet; diese Anfrage wurde nicht
-            dauerhaft gespeichert.
+            Demo-Modus: Die Datenbankmigration ist noch nicht angewendet; diese Bestellung wurde
+            nicht dauerhaft gespeichert.
           </div>
         )}
         <div>
@@ -74,14 +96,17 @@ export function RequestForm({ products }: { products: Product[] }) {
           <Link className="button secondary" href="/konto">
             Zum Konto
           </Link>
+          <Link className="button secondary" href="/bestellung">
+            Bestellung verfolgen
+          </Link>
         </div>
       </div>
     );
-  if (!ready) return <div className="loading-card">Anfrage wird vorbereitet …</div>;
+  if (!ready) return <div className="loading-card">Bestellung wird vorbereitet …</div>;
   if (!lines.length)
     return (
       <div className="empty-cart">
-        <h2>Keine Produkte für die Anfrage</h2>
+        <h2>Keine Produkte für die Bestellung</h2>
         <p>Fügen Sie zuerst Baustoffe zum Warenkorb hinzu.</p>
         <Link className="button primary" href="/sortiment">
           Zum Sortiment
@@ -95,7 +120,7 @@ export function RequestForm({ products }: { products: Product[] }) {
           <p className="form-step">01</p>
           <div>
             <h2>Kontaktdaten</h2>
-            <p>Damit wir Ihr persönliches Angebot erstellen können.</p>
+            <p>Damit wir Sie informieren können, sobald alles zur Abholung bereitsteht.</p>
             <div className="form-grid">
               <label>
                 Vor- und Nachname
@@ -109,37 +134,37 @@ export function RequestForm({ products }: { products: Product[] }) {
                 Telefonnummer
                 <input name="phone" type="tel" required autoComplete="tel" />
               </label>
-              <label>
-                Postleitzahl
-                <input
-                  name="postalCode"
-                  inputMode="numeric"
-                  pattern="[0-9]{5}"
-                  required
-                  autoComplete="postal-code"
-                />
-              </label>
             </div>
           </div>
         </section>
         <section>
           <p className="form-step">02</p>
           <div>
-            <h2>Wie möchten Sie die Ware erhalten?</h2>
+            <h2>Abholung im Markt</h2>
             <div className="fulfillment-options">
-              <label>
-                <input type="radio" name="fulfillment" value="pickup" defaultChecked />
+              <div className="pickup-choice">
+                <MapPin aria-hidden="true" />
                 <span>
-                  <b>Abholung Berlin-Mitte</b>
-                  <small>In der Regel innerhalb von 2 Stunden</small>
+                  <b>Abholung im {siteConfig.pickupLocationName}</b>
+                  <small>
+                    Wir stellen Ihre Bestellung zusammen und informieren Sie per E-Mail.
+                  </small>
                 </span>
-              </label>
-              <label>
-                <input type="radio" name="fulfillment" value="delivery" />
+              </div>
+              <div className="pickup-choice">
+                <WalletCards aria-hidden="true" />
                 <span>
-                  <b>Lieferung zur Baustelle</b>
-                  <small>Termin und Kosten im Angebot</small>
+                  <b>Zahlung bei Abholung</b>
+                  <small>Bezahlen Sie Ihre Bestellung erst bei der Ausgabe im Markt.</small>
                 </span>
+              </div>
+              <label className="pickup-time">
+                <CalendarClock aria-hidden="true" />
+                <span>
+                  <b>Gewünschter Abholtermin</b>
+                  <small>Bitte mindestens zwei Stunden Vorlauf einplanen.</small>
+                </span>
+                <input name="pickupSlot" type="datetime-local" required />
               </label>
             </div>
           </div>
@@ -154,7 +179,7 @@ export function RequestForm({ products }: { products: Product[] }) {
                 name="comment"
                 rows={5}
                 maxLength={1000}
-                placeholder="Zufahrt, gewünschter Termin oder Fragen zu den Produkten"
+                placeholder="Zum Beispiel gewünschter Abholtag oder Fragen zu den Produkten"
               />
             </label>
             <input
@@ -167,10 +192,15 @@ export function RequestForm({ products }: { products: Product[] }) {
             <label className="consent">
               <input type="checkbox" name="consent" required />
               <span>
-                Ich stimme der Verarbeitung meiner Angaben zur Bearbeitung dieser Anfrage gemäß der{" "}
-                <Link href="/datenschutz">Datenschutzerklärung</Link> zu.
+                Ich stimme der Verarbeitung meiner Angaben zur Bearbeitung dieser Bestellung gemäß
+                der <Link href="/datenschutz">Datenschutzerklärung</Link> zu.
               </span>
             </label>
+            <TurnstileWidget
+              action="checkout"
+              onTokenChange={handleTokenChange}
+              resetKey={resetKey}
+            />
           </div>
         </section>
         {error && (
@@ -180,19 +210,19 @@ export function RequestForm({ products }: { products: Product[] }) {
         )}
       </div>
       <aside className="request-summary">
-        <p className="kicker">IHRE ANFRAGE</p>
+        <p className="kicker">IHRE BESTELLUNG</p>
         <div>
           <span>{lines.reduce((sum, line) => sum + line.quantity, 0)} Artikel</span>
           <strong>{euro.format(subtotal)}</strong>
         </div>
-        <p>Unverbindliche Anfrage. Es kommt noch kein Kaufvertrag zustande.</p>
-        <button className="button primary" disabled={loading} type="submit">
+        <p>Nur Abholung im Markt. Zahlung erst bei der Ausgabe.</p>
+        <button className="button primary" disabled={loading || !turnstileToken} type="submit">
           {loading ? (
             <>
               <LoaderCircle className="spin" size={17} /> Wird gesendet …
             </>
           ) : (
-            "Angebot anfragen"
+            "Bestellung aufgeben"
           )}
         </button>
         <Link href="/warenkorb">Warenkorb bearbeiten</Link>

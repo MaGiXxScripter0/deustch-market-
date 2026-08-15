@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { UpdatePasswordForm } from "@/components/update-password-form";
+import { siteConfig } from "@/lib/site-config";
 
-export const metadata: Metadata = { title: "Neues Passwort | Demo Baustoffmarkt" };
+export const metadata: Metadata = { title: `Neues Passwort | ${siteConfig.name}` };
 
 export default function NewPasswordPage() {
   return (

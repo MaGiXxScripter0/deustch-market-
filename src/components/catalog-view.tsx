@@ -1,10 +1,11 @@
 "use client";
 
 import { SlidersHorizontal, X } from "lucide-react";
-import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { filterProducts } from "@/lib/catalog";
 import type { Category, Product } from "@/lib/types";
+import { CatalogFilterPanel } from "./catalog-filter-panel";
 import { ProductCard } from "./product-card";
 
 export function CatalogView({
@@ -60,161 +61,38 @@ export function CatalogView({
   };
 
   const visible = useMemo(() => {
-    let result = [...initialProducts];
-    if (activeBrands.length) result = result.filter((item) => activeBrands.includes(item.brand));
-    if (availability)
-      result = result.filter((item) => item.inventory[availability as "pickup" | "delivery"]);
-    if (minPrice) result = result.filter((item) => item.price >= Number(minPrice));
-    if (maxPrice) result = result.filter((item) => item.price <= Number(maxPrice));
-    if (activeSpecs.length) {
-      const selections = new Map<string, string[]>();
-      activeSpecs.forEach((selection) => {
-        const separator = selection.indexOf(":");
-        if (separator < 1) return;
-        const key = selection.slice(0, separator);
-        const value = selection.slice(separator + 1);
-        selections.set(key, [...(selections.get(key) ?? []), value]);
-      });
-      result = result.filter((product) =>
-        [...selections].every(([key, values]) => values.includes(String(product.specs[key]))),
-      );
-    }
-    if (sort === "price-asc") result.sort((a, b) => a.price - b.price);
-    if (sort === "price-desc") result.sort((a, b) => b.price - a.price);
-    if (sort === "name") result.sort((a, b) => a.name.localeCompare(b.name, "de"));
-    return result;
-  }, [initialProducts, activeBrands, activeSpecs, availability, minPrice, maxPrice, sort]);
+    const specs: Record<string, string[]> = {};
+    activeSpecs.forEach((selection) => {
+      const separator = selection.indexOf(":");
+      if (separator < 1) return;
+      const key = selection.slice(0, separator);
+      specs[key] = [...(specs[key] ?? []), selection.slice(separator + 1)];
+    });
+    return filterProducts(
+      {
+        brands: activeBrands,
+        availability: availability ? "pickup" : undefined,
+        minPrice: minPrice ? Number(minPrice) : undefined,
+        maxPrice: maxPrice ? Number(maxPrice) : undefined,
+        specs,
+        sort: sort as "featured" | "price-asc" | "price-desc" | "name",
+      },
+      initialProducts,
+      categories,
+    );
+  }, [
+    initialProducts,
+    categories,
+    activeBrands,
+    activeSpecs,
+    availability,
+    minPrice,
+    maxPrice,
+    sort,
+  ]);
 
   const hasFilters =
     activeBrands.length > 0 || activeSpecs.length > 0 || Boolean(availability || minPrice || maxPrice);
-
-  const filterPanel = (
-    <aside className="filter-panel">
-      <div className="filter-mobile-head">
-        <b>Filter</b>
-        <button type="button" onClick={() => setMobileFilters(false)} aria-label="Filter schließen">
-          <X />
-        </button>
-      </div>
-      {!activeCategory && (
-        <fieldset>
-          <legend>Kategorie</legend>
-          {categories.map((category) => (
-            <Link
-              className="filter-category"
-              key={category.slug}
-              href={`/kategorie/${category.slug}`}
-            >
-              {category.shortName}
-              <span>
-                {initialProducts.filter((item) => item.categorySlug === category.slug).length}
-              </span>
-            </Link>
-          ))}
-        </fieldset>
-      )}
-      <fieldset>
-        <legend>Verfügbarkeit</legend>
-        <label>
-          <input
-            type="radio"
-            name="availability"
-            checked={!availability}
-            onChange={() => setParam("availability")}
-          />{" "}
-          Alle Produkte
-        </label>
-        <label>
-          <input
-            type="radio"
-            name="availability"
-            checked={availability === "pickup"}
-            onChange={() => setParam("availability", "pickup")}
-          />{" "}
-          Heute abholbar
-        </label>
-        <label>
-          <input
-            type="radio"
-            name="availability"
-            checked={availability === "delivery"}
-            onChange={() => setParam("availability", "delivery")}
-          />{" "}
-          Online lieferbar
-        </label>
-      </fieldset>
-      <fieldset>
-        <legend>Marke</legend>
-        {brands.map((brand) => (
-          <label key={brand}>
-            <input
-              type="checkbox"
-              checked={activeBrands.includes(brand)}
-              onChange={() => setParam("brand", brand, true)}
-            />{" "}
-            {brand}
-          </label>
-        ))}
-      </fieldset>
-      <fieldset>
-        <legend>Preis</legend>
-        <div className="price-filter">
-          <label>
-            Von
-            <input
-              type="number"
-              min="0"
-              step="1"
-              value={minPrice}
-              placeholder="0 €"
-              onChange={(event) => setParam("minPrice", event.target.value)}
-            />
-          </label>
-          <label>
-            Bis
-            <input
-              type="number"
-              min="0"
-              step="1"
-              value={maxPrice}
-              placeholder="250 €"
-              onChange={(event) => setParam("maxPrice", event.target.value)}
-            />
-          </label>
-        </div>
-      </fieldset>
-      {specFacets.map((facet) => (
-        <fieldset key={facet.key}>
-          <legend>{facet.key}</legend>
-          {facet.values.map((value) => {
-            const selection = `${facet.key}:${value}`;
-            const count = initialProducts.filter(
-              (product) => String(product.specs[facet.key]) === value,
-            ).length;
-            return (
-              <label key={selection}>
-                <input
-                  type="checkbox"
-                  checked={activeSpecs.includes(selection)}
-                  onChange={() => setParam("spec", selection, true)}
-                />{" "}
-                {value} <small>({count})</small>
-              </label>
-            );
-          })}
-        </fieldset>
-      ))}
-      {hasFilters && (
-        <button
-          className="reset-filters"
-          type="button"
-          onClick={() => router.push("?", { scroll: false })}
-        >
-          Alle zurücksetzen
-        </button>
-      )}
-    </aside>
-  );
 
   return (
     <div className="catalog-layout">
@@ -225,7 +103,25 @@ export function CatalogView({
       >
         <SlidersHorizontal size={17} /> Filter & Sortierung · {visible.length} Produkte
       </button>
-      <div className={mobileFilters ? "filter-drawer open" : "filter-drawer"}>{filterPanel}</div>
+      <div className={mobileFilters ? "filter-drawer open" : "filter-drawer"}>
+        <CatalogFilterPanel
+          initialProducts={initialProducts}
+          categories={categories}
+          activeCategory={activeCategory}
+          activeBrands={activeBrands}
+          activeSpecs={activeSpecs}
+          availability={availability}
+          minPrice={minPrice}
+          maxPrice={maxPrice}
+          brands={brands}
+          specFacets={specFacets}
+          resultCount={visible.length}
+          hasFilters={hasFilters}
+          setParam={setParam}
+          onClose={() => setMobileFilters(false)}
+          onReset={() => router.push("?", { scroll: false })}
+        />
+      </div>
       <div className="catalog-results">
         <div className="catalog-toolbar">
           <p>
@@ -250,16 +146,16 @@ export function CatalogView({
             ))}
             {availability && (
               <button type="button" onClick={() => setParam("availability")}>
-                {availability === "pickup" ? "Heute abholbar" : "Online lieferbar"} <X size={13} />
+                Heute abholbar <X size={13} />
               </button>
             )}
             {minPrice && (
-              <button type="button" onClick={() => setParam("minPrice") }>
+              <button type="button" onClick={() => setParam("minPrice")}>
                 Ab {minPrice} € <X size={13} />
               </button>
             )}
             {maxPrice && (
-              <button type="button" onClick={() => setParam("maxPrice") }>
+              <button type="button" onClick={() => setParam("maxPrice")}>
                 Bis {maxPrice} € <X size={13} />
               </button>
             )}
@@ -275,8 +171,8 @@ export function CatalogView({
           </div>
         )}
         <div className="product-grid catalog-grid">
-          {visible.map((product) => (
-            <ProductCard key={product.id} product={product} />
+          {visible.map((product, index) => (
+            <ProductCard key={product.id} product={product} eager={index < 8} />
           ))}
         </div>
         {visible.length === 0 && (

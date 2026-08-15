@@ -6,6 +6,7 @@ import { ImagePlus, LoaderCircle, Save } from "lucide-react";
 import { useActionState, useState } from "react";
 import { saveProductAction } from "@/lib/actions";
 import { createClient } from "@/lib/supabase/client";
+import { siteConfig } from "@/lib/site-config";
 import type { Category, Product } from "@/lib/types";
 
 export function AdminProductForm({
@@ -199,24 +200,13 @@ export function AdminProductForm({
             />
           </label>
           <label>
-            Bestand Berlin-Mitte
+            Bestand {siteConfig.storeName}
             <input
               name="berlinStock"
               type="number"
               min="0"
               step="1"
               defaultValue={product?.inventory.berlin ?? 0}
-              required
-            />
-          </label>
-          <label>
-            Bestand Zentrallager
-            <input
-              name="warehouseStock"
-              type="number"
-              min="0"
-              step="1"
-              defaultValue={product?.inventory.warehouse ?? 0}
               required
             />
           </label>

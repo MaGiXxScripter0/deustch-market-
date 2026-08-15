@@ -1,13 +1,16 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { Check, Clock3, PackageCheck, ShieldCheck, Truck } from "lucide-react";
+import { Check, Clock3, ShieldCheck } from "lucide-react";
 import { notFound } from "next/navigation";
 import { AddToCart } from "@/components/add-to-cart";
+import { JsonLd } from "@/components/json-ld";
 import { ProductCard } from "@/components/product-card";
+import { ProductAvailability } from "@/components/product-availability";
 import { QuantityCalculator } from "@/components/quantity-calculator";
 import { euro } from "@/lib/catalog";
 import { getCatalogData } from "@/lib/catalog-repository";
+import { siteConfig } from "@/lib/site-config";
 
 export const revalidate = 900;
 export async function generateMetadata({
@@ -21,8 +24,9 @@ export async function generateMetadata({
   if (!product) return {};
   const base = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
   return {
-    title: `${product.name} | Demo Baustoffmarkt`,
+    title: `${product.name} | ${siteConfig.name}`,
     description: product.shortDescription,
+    alternates: { canonical: `/produkt/${product.slug}` },
     openGraph: {
       title: product.name,
       description: product.shortDescription,
@@ -61,17 +65,14 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
       "@type": "Offer",
       priceCurrency: "EUR",
       price: product.price,
-      availability: product.inventory.delivery
+      availability: product.inventory.pickup
         ? "https://schema.org/InStock"
         : "https://schema.org/OutOfStock",
     },
   };
   return (
     <main>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(structured) }}
-      />
+      <JsonLd data={structured} />
       <div className="shell product-page">
         <p className="breadcrumbs">
           <Link href="/">Startseite</Link> / <Link href="/sortiment">Sortiment</Link> /{" "}
@@ -84,7 +85,8 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
                 src={product.image}
                 alt={product.imageAlt}
                 fill
-                priority
+                loading="eager"
+                fetchPriority="high"
                 sizes="(max-width:900px) 100vw, 55vw"
               />
             </div>
@@ -99,9 +101,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
             </p>
             <h1>{product.name}</h1>
             <p className="product-intro">{product.shortDescription}</p>
-            <div className="rating-placeholder">
-              <span>★★★★★</span> Neu im Sortiment
-            </div>
+            <p className="product-status">Neu im Sortiment</p>
             {variants.length > 1 && (
               <div className="variants">
                 <b>Ausführung</b>
@@ -118,44 +118,28 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
                 </div>
               </div>
             )}
-            <div className="detail-price">
-              <strong>{euro.format(product.price)}</strong>
-              <span>
-                /{product.saleUnit}
-                <br />
-                inkl. 19 % MwSt.
-                <br />
-                <b>
-                  {euro.format(product.basePrice)}/{product.baseUnit}
-                </b>
-              </span>
-            </div>
-            <div className="fulfillment-card">
-              <div>
-                <PackageCheck />
+            <div className="purchase-panel">
+              <div className="detail-price">
+                <strong>{euro.format(product.price)}</strong>
                 <span>
+                  /{product.saleUnit}
+                  <br />
+                  inkl. 19 % MwSt.
+                  <br />
                   <b>
-                    {product.inventory.berlin} {product.saleUnit} in Berlin-Mitte
+                    {euro.format(product.basePrice)}/{product.baseUnit}
                   </b>
-                  <small>
-                    <i /> Abholbereit in ca. 2 Stunden
-                  </small>
                 </span>
               </div>
-              <div>
-                <Truck />
-                <span>
-                  <b>
-                    {product.inventory.warehouse} {product.saleUnit} im Zentrallager
-                  </b>
-                  <small>Lieferung in 2–4 Werktagen</small>
-                </span>
-              </div>
+              <ProductAvailability saleUnit={product.saleUnit} inventory={product.inventory} />
+              <AddToCart
+                productId={product.id}
+                disabled={!product.inventory.pickup || product.inventory.berlin === 0}
+              />
+              <p className="shipping-note">
+                <ShieldCheck size={16} /> Bestellung zur Abholung im Markt. Zahlung bei Ausgabe.
+              </p>
             </div>
-            <AddToCart productId={product.id} />
-            <p className="shipping-note">
-              <ShieldCheck size={16} /> Unverbindliche Anfrage — noch kein Kaufvertrag.
-            </p>
           </div>
         </div>
         {product.coveragePerUnit && (
@@ -168,7 +152,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
         <section className="product-information">
           <div>
             <p className="kicker">PRODUKTDETAILS</p>
-            <h2>Für verlässliche Ergebnisse.</h2>
+            <h2>Beschreibung</h2>
             <p>{product.description}</p>
             <ul>
               <li>
@@ -178,7 +162,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
                 <Check /> Gewicht: {product.weightKg.toLocaleString("de-DE")} kg
               </li>
               <li>
-                <Clock3 /> {product.inventory.leadTime}
+                <Clock3 /> {product.inventory.pickupLeadTime}
               </li>
             </ul>
           </div>

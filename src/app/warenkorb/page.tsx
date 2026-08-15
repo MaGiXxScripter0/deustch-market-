@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { CartView } from "@/components/cart-view";
 import { getCatalogData } from "@/lib/catalog-repository";
-export const metadata: Metadata = { title: "Warenkorb | Demo Baustoffmarkt" };
+import { siteConfig } from "@/lib/site-config";
+
+export const metadata: Metadata = { title: `Warenkorb | ${siteConfig.name}` };
 export default async function CartPage() {
   const { products } = await getCatalogData();
   return (

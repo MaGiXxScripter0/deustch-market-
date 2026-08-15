@@ -4,8 +4,9 @@ import { FileText, LogOut, PackageSearch, UserRound } from "lucide-react";
 import { signOutAction } from "@/lib/actions";
 import { ProfileForm } from "@/components/profile-form";
 import { getCurrentProfile } from "@/lib/supabase/server";
+import { siteConfig } from "@/lib/site-config";
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Mein Konto | Demo Baustoffmarkt" };
+export const metadata: Metadata = { title: `Mein Konto | ${siteConfig.name}` };
 export default async function AccountPage() {
   const auth = await getCurrentProfile();
   if (!auth)
@@ -15,7 +16,9 @@ export default async function AccountPage() {
           <UserRound size={42} />
           <p className="kicker">MEIN KONTO</p>
           <h1>Alles für Ihr Projekt an einem Ort.</h1>
-          <p>Melden Sie sich an, um Anfragen, Kontaktdaten und Bearbeitungsstände einzusehen.</p>
+          <p>
+            Melden Sie sich an, um Bestellungen, Kontaktdaten und Bearbeitungsstände einzusehen.
+          </p>
           <div>
             <Link className="button primary" href="/konto/anmelden">
               Anmelden
@@ -45,8 +48,8 @@ export default async function AccountPage() {
         <Link href="/konto/anfragen">
           <FileText />
           <span>
-            <b>Meine Anfragen</b>
-            <small>Bearbeitungsstand und Positionen</small>
+            <b>Meine Bestellungen</b>
+            <small>Abholstatus und Positionen</small>
           </span>
         </Link>
         <Link href="/sortiment">
@@ -61,15 +64,12 @@ export default async function AccountPage() {
             <UserRound />
             <span>
               <b>Administration</b>
-              <small>Katalog und Anfragen verwalten</small>
+              <small>Katalog und Bestellungen verwalten</small>
             </span>
           </Link>
         )}
       </div>
-      <ProfileForm
-        fullName={auth.profile?.full_name ?? ""}
-        phone={auth.profile?.phone ?? ""}
-      />
+      <ProfileForm fullName={auth.profile?.full_name ?? ""} phone={auth.profile?.phone ?? ""} />
     </main>
   );
 }

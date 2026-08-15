@@ -48,7 +48,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           </Link>
           <Link href="/admin/anfragen">
             <MessageSquareText />
-            Anfragen
+            Bestellungen
           </Link>
           <Link href="/admin/kunden">
             <UsersRound />

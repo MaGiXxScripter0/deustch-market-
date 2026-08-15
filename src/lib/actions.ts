@@ -1,11 +1,26 @@
 "use server";
 
 import { revalidatePath, updateTag } from "next/cache";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { parseCatalogImport } from "./catalog-import";
+import { siteConfig } from "./site-config";
 import { createClient, getCurrentProfile } from "./supabase/server";
+import { verifyTurnstile } from "./turnstile";
 
 export type ActionState = { error?: string; success?: string };
+export type CatalogImportState = ActionState & { imported?: number; errors?: string[] };
+
+function slugFromImport(name: string, sku: string) {
+  const normalized = `${name}-${sku}`
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+  return normalized.slice(0, 180) || `artikel-${crypto.randomUUID()}`;
+}
 
 const credentialsSchema = z.object({
   email: z.email("Bitte geben Sie eine gültige E-Mail-Adresse ein."),
@@ -18,6 +33,8 @@ export async function signInAction(_: ActionState, formData: FormData): Promise<
     password: formData.get("password"),
   });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message };
+  if (!(await verifyTurnstile(formData.get("cf-turnstile-response"), "login", await headers())))
+    return { error: "Die Sicherheitsprüfung ist fehlgeschlagen. Bitte versuchen Sie es erneut." };
   const supabase = await createClient();
   if (!supabase) return { error: "Supabase ist noch nicht konfiguriert." };
   const { error } = await supabase.auth.signInWithPassword(parsed.data);
@@ -36,8 +53,10 @@ export async function signUpAction(_: ActionState, formData: FormData): Promise<
       password: formData.get("password"),
       fullName: formData.get("fullName"),
       phone: formData.get("phone"),
-    });
+  });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message };
+  if (!(await verifyTurnstile(formData.get("cf-turnstile-response"), "signup", await headers())))
+    return { error: "Die Sicherheitsprüfung ist fehlgeschlagen. Bitte versuchen Sie es erneut." };
   const supabase = await createClient();
   if (!supabase) return { error: "Supabase ist noch nicht konfiguriert." };
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
@@ -133,12 +152,43 @@ export async function updateRequestStatusAction(formData: FormData) {
   const auth = await getCurrentProfile();
   if (auth?.profile?.role !== "admin") return;
   const id = String(formData.get("id") ?? "");
-  const status = String(formData.get("status") ?? "");
-  const valid = ["new", "processing", "quoted", "completed", "cancelled"];
-  if (!valid.includes(status)) return;
+  const status = z
+    .enum(["new", "processing", "ready_for_pickup", "completed", "cancelled"])
+    .safeParse(formData.get("status"));
+  if (!status.success) return;
   const supabase = await createClient();
   if (!supabase) return;
-  await supabase.from("requests").update({ status }).eq("id", id);
+  await supabase.rpc("set_pickup_order_status", {
+    p_request_id: id,
+    p_status: status.data,
+  });
+  revalidatePath("/admin/anfragen");
+  revalidatePath(`/admin/anfragen/${id}`);
+  revalidatePath("/konto/anfragen");
+}
+
+export async function setPickupItemPickedAction(formData: FormData) {
+  const auth = await getCurrentProfile();
+  if (auth?.profile?.role !== "admin") return;
+  const parsed = z
+    .object({
+      itemId: z.uuid(),
+      requestId: z.uuid(),
+      picked: z.enum(["true", "false"]),
+    })
+    .safeParse({
+      itemId: formData.get("itemId"),
+      requestId: formData.get("requestId"),
+      picked: formData.get("picked"),
+    });
+  if (!parsed.success) return;
+  const supabase = await createClient();
+  if (!supabase) return;
+  await supabase.rpc("set_pickup_item_picked", {
+    p_request_item_id: parsed.data.itemId,
+    p_picked: parsed.data.picked === "true",
+  });
+  revalidatePath(`/admin/anfragen/${parsed.data.requestId}`);
   revalidatePath("/admin/anfragen");
 }
 
@@ -153,6 +203,198 @@ export async function toggleProductAction(formData: FormData) {
   updateTag("catalog");
   revalidatePath("/sortiment");
   revalidatePath("/admin/produkte");
+}
+
+export async function importCatalogAction(
+  _: CatalogImportState,
+  formData: FormData,
+): Promise<CatalogImportState> {
+  const auth = await getCurrentProfile();
+  if (auth?.profile?.role !== "admin") return { error: "Keine Administratorberechtigung." };
+  const file = formData.get("catalog");
+  if (!(file instanceof File)) return { error: "Bitte wählen Sie eine CSV-Datei aus." };
+  if (file.size === 0 || file.size > 5_000_000)
+    return { error: "Die CSV-Datei darf maximal 5 MB groß sein." };
+  const parsed = parseCatalogImport(await file.text());
+  if (parsed.errors.length)
+    return { error: "Der Import wurde nicht gespeichert.", errors: parsed.errors };
+
+  const supabase = await createClient();
+  if (!supabase) return { error: "Supabase ist nicht konfiguriert." };
+  const [
+    { data: categories, error: categoryError },
+    { data: existingProducts, error: existingError },
+  ] = await Promise.all([
+    supabase.from("categories").select("id, slug"),
+    supabase
+      .from("products")
+      .select("sku, slug")
+      .in(
+        "sku",
+        parsed.rows.map((row) => row.sku),
+      ),
+  ]);
+  if (categoryError || existingError)
+    return { error: "Katalogdaten konnten nicht gelesen werden." };
+
+  const categoryIds = new Map((categories ?? []).map((category) => [category.slug, category.id]));
+  const invalidCategories = [
+    ...new Set(
+      parsed.rows
+        .map((row) => row.categorySlug)
+        .filter((categorySlug) => !categoryIds.has(categorySlug)),
+    ),
+  ];
+  if (invalidCategories.length)
+    return { error: `Unbekannte Kategorien: ${invalidCategories.join(", ")}` };
+  const existingSlugs = new Map(
+    (existingProducts ?? []).map((product) => [product.sku, product.slug]),
+  );
+  const now = new Date().toISOString();
+  const productValues = parsed.rows.map((row) => ({
+    category_id: categoryIds.get(row.categorySlug)!,
+    sku: row.sku,
+    slug: existingSlugs.get(row.sku) ?? slugFromImport(row.name, row.sku),
+    gtin: row.gtin,
+    brand: row.brand,
+    name_de: row.name,
+    short_description_de: row.shortDescription,
+    description_de: row.description,
+    price_gross: row.price,
+    sale_unit: row.saleUnit,
+    base_price: row.basePrice,
+    base_unit: row.baseUnit,
+    base_quantity: row.baseQuantity,
+    weight_kg: 0,
+    primary_image_url: row.imageUrl,
+    specs: row.specs,
+    search_aliases: row.aliases,
+    is_featured: row.featured,
+    is_active: row.active,
+    source_url: row.sourceUrl,
+    last_synced_at: now,
+  }));
+  const { data: savedProducts, error: productError } = await supabase
+    .from("products")
+    .upsert(productValues, { onConflict: "sku" })
+    .select("id, sku");
+  if (productError || !savedProducts)
+    return { error: `Produkte konnten nicht gespeichert werden: ${productError?.message ?? ""}` };
+
+  const productIds = new Map(savedProducts.map((product) => [product.sku, product.id]));
+  const { data: location, error: locationError } = await supabase
+    .from("locations")
+    .select("id")
+    .eq("slug", siteConfig.pickupLocationSlug)
+    .maybeSingle();
+  if (locationError || !location) return { error: `Der Abholort ${siteConfig.storeName} fehlt.` };
+  const { error: inventoryError } = await supabase.from("inventory").upsert(
+    parsed.rows.map((row) => ({
+      product_id: productIds.get(row.sku)!,
+      location_id: location.id,
+      available_qty: row.stockBerlin,
+      pickup_available: row.pickupAvailable,
+      delivery_available: false,
+      lead_time_de: row.pickupLeadTime,
+      updated_at: now,
+    })),
+  );
+  if (inventoryError)
+    return { error: `Abholbestand konnte nicht gespeichert werden: ${inventoryError.message}` };
+
+  const images = parsed.rows
+    .filter((row) => row.imageUrl)
+    .map((row) => ({
+      product_id: productIds.get(row.sku)!,
+      storage_path: row.imageUrl!,
+      alt_de: `${row.name} – Produktabbildung`,
+      sort_order: 0,
+    }));
+  if (images.length) {
+    const { error: imageError } = await supabase
+      .from("product_images")
+      .upsert(images, { onConflict: "product_id,storage_path" });
+    if (imageError)
+      return { error: `Bildzuordnungen konnten nicht gespeichert werden: ${imageError.message}` };
+  }
+  updateTag("catalog");
+  revalidatePath("/sortiment");
+  revalidatePath("/admin/produkte");
+  revalidatePath("/admin/produkte/import");
+  return {
+    success: `${savedProducts.length} Produkte wurden importiert.`,
+    imported: savedProducts.length,
+  };
+}
+
+const categorySchema = z.object({
+  id: z.uuid().optional(),
+  slug: z.string().regex(/^[a-z0-9-]+$/),
+  name: z.string().trim().min(3).max(120),
+  description: z.string().trim().min(10).max(500),
+  sortOrder: z.coerce.number().int().min(0).max(999),
+  filters: z.string().max(500),
+  imageUrl: z.union([z.url(), z.literal("")]),
+});
+
+export async function saveCategoryAction(_: ActionState, formData: FormData): Promise<ActionState> {
+  const auth = await getCurrentProfile();
+  if (auth?.profile?.role !== "admin") return { error: "Keine Administratorberechtigung." };
+  const parsed = categorySchema.safeParse({
+    id: formData.get("id") || undefined,
+    slug: formData.get("slug"),
+    name: formData.get("name"),
+    description: formData.get("description"),
+    sortOrder: formData.get("sortOrder"),
+    filters: formData.get("filters") ?? "",
+    imageUrl: formData.get("imageUrl") ?? "",
+  });
+  if (!parsed.success)
+    return { error: parsed.error.issues[0]?.message ?? "Ungültige Kategoriedaten." };
+  const supabase = await createClient();
+  if (!supabase) return { error: "Supabase ist nicht konfiguriert." };
+  const values = {
+    slug: parsed.data.slug,
+    name_de: parsed.data.name,
+    description_de: parsed.data.description,
+    image_path: parsed.data.imageUrl || null,
+    sort_order: parsed.data.sortOrder,
+    filter_config: parsed.data.filters
+      .split(",")
+      .map((filter) => filter.trim())
+      .filter(Boolean),
+  };
+  let error: { message: string } | null;
+  if (parsed.data.id) {
+    ({ error } = await supabase.from("categories").update(values).eq("id", parsed.data.id));
+  } else {
+    ({ error } = await supabase.from("categories").insert({
+      id: crypto.randomUUID(),
+      ...values,
+      is_active: true,
+    }));
+  }
+  if (error) return { error: `Speichern fehlgeschlagen: ${error.message}` };
+  updateTag("catalog");
+  revalidatePath("/admin/kategorien");
+  return { success: "Kategorie wurde gespeichert." };
+}
+
+export async function toggleCategoryAction(formData: FormData) {
+  const auth = await getCurrentProfile();
+  if (auth?.profile?.role !== "admin") return;
+  const parsed = z
+    .object({ id: z.uuid(), active: z.enum(["true", "false"]) })
+    .safeParse({ id: formData.get("id"), active: formData.get("active") });
+  if (!parsed.success) return;
+  const supabase = await createClient();
+  if (!supabase) return;
+  await supabase
+    .from("categories")
+    .update({ is_active: parsed.data.active === "true" })
+    .eq("id", parsed.data.id);
+  updateTag("catalog");
+  revalidatePath("/admin/kategorien");
 }
 
 const productSchema = z.object({
@@ -175,8 +417,8 @@ const productSchema = z.object({
   specs: z.string(),
   aliases: z.string().optional(),
   berlinStock: z.coerce.number().nonnegative(),
-  warehouseStock: z.coerce.number().nonnegative(),
 });
+const productSpecsSchema = z.record(z.string(), z.union([z.string(), z.number(), z.boolean()]));
 
 export async function saveProductAction(_: ActionState, formData: FormData): Promise<ActionState> {
   const auth = await getCurrentProfile();
@@ -201,21 +443,22 @@ export async function saveProductAction(_: ActionState, formData: FormData): Pro
     specs: formData.get("specs") ?? "{}",
     aliases: formData.get("aliases") ?? "",
     berlinStock: formData.get("berlinStock"),
-    warehouseStock: formData.get("warehouseStock"),
   });
   if (!parsed.success)
     return { error: parsed.error.issues[0]?.message ?? "Ungültige Produktdaten." };
-  let specs: Record<string, unknown>;
+  let rawSpecs: unknown;
   try {
-    specs = JSON.parse(parsed.data.specs);
+    rawSpecs = JSON.parse(parsed.data.specs);
   } catch {
     return { error: "Technische Daten müssen gültiges JSON sein." };
   }
+  const parsedSpecs = productSpecsSchema.safeParse(rawSpecs);
+  if (!parsedSpecs.success)
+    return { error: "Technische Daten müssen ein Objekt mit einfachen Werten sein." };
   const supabase = await createClient();
   if (!supabase) return { error: "Supabase ist nicht konfiguriert." };
   const productId = parsed.data.id ?? crypto.randomUUID();
-  const { error } = await supabase.from("products").upsert({
-    id: productId,
+  const productValues = {
     category_id: parsed.data.categoryId,
     sku: parsed.data.sku,
     slug: parsed.data.slug,
@@ -231,34 +474,51 @@ export async function saveProductAction(_: ActionState, formData: FormData): Pro
     coverage_per_unit: parsed.data.coverage === "" ? null : parsed.data.coverage,
     weight_kg: parsed.data.weight,
     primary_image_url: parsed.data.imageUrl || null,
-    specs,
+    specs: parsedSpecs.data,
     search_aliases: parsed.data.aliases
       ?.split(",")
       .map((item) => item.trim())
       .filter(Boolean),
-    is_active: true,
-  });
+  };
+  const { error } = parsed.data.id
+    ? await supabase.from("products").update(productValues).eq("id", productId)
+    : await supabase.from("products").insert({
+        id: productId,
+        ...productValues,
+        is_active: true,
+      });
   if (error) return { error: `Speichern fehlgeschlagen: ${error.message}` };
+
+  if (parsed.data.imageUrl) {
+    const { error: imageError } = await supabase.from("product_images").upsert(
+      {
+        product_id: productId,
+        storage_path: parsed.data.imageUrl,
+        alt_de: `${parsed.data.name} – Produktabbildung`,
+        sort_order: 0,
+      },
+      { onConflict: "product_id,storage_path" },
+    );
+    if (imageError) return { error: `Bildzuordnung fehlgeschlagen: ${imageError.message}` };
+  }
 
   const locations = await supabase
     .from("locations")
     .select("id, slug")
-    .in("slug", ["berlin-mitte", "zentrallager"]);
+    .eq("slug", siteConfig.pickupLocationSlug);
   if (locations.data?.length) {
-    await supabase.from("inventory").upsert(
+    const { error: inventoryError } = await supabase.from("inventory").upsert(
       locations.data.map((location) => ({
         product_id: productId,
         location_id: location.id,
-        available_qty:
-          location.slug === "berlin-mitte" ? parsed.data.berlinStock : parsed.data.warehouseStock,
-        pickup_available: location.slug === "berlin-mitte",
-        delivery_available: true,
-        lead_time_de:
-          location.slug === "berlin-mitte"
-            ? "Abholbereit in 2 Stunden"
-            : "Lieferbar in 2–4 Werktagen",
+        available_qty: parsed.data.berlinStock,
+        pickup_available: true,
+        delivery_available: false,
+        lead_time_de: "Abholbereit in 2 Stunden",
       })),
     );
+    if (inventoryError)
+      return { error: `Bestand konnte nicht gespeichert werden: ${inventoryError.message}` };
   }
   revalidatePath("/sortiment");
   revalidatePath("/admin/produkte");
