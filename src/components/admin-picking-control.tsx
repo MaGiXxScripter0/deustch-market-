@@ -36,10 +36,24 @@ function PickingButton({
   return (
     <button
       type="submit"
-      className={picked ? "picked" : ""}
+      className={picked ? "picked" : undefined}
       aria-label={`${itemName}: ${picked ? "Kommissionierung aufheben" : "kommissionieren"}`}
       disabled={disabled || pending}
-      style={{ minHeight: 36, minWidth: 36 }}
+      style={{
+        minWidth: 36,
+        minHeight: 36,
+        width: "auto",
+        height: 36,
+        padding: "0 10px",
+        color: picked ? "var(--white)" : "var(--ink)",
+        background: picked ? "var(--accent)" : "var(--white)",
+        borderColor: picked ? "var(--accent)" : "var(--line)",
+        font: "inherit",
+        fontSize: "0.82rem",
+        fontWeight: 700,
+        lineHeight: 1,
+        whiteSpace: "nowrap",
+      }}
     >
       {picked ? "✓ " : ""}Kommissioniert
     </button>
