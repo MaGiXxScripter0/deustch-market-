@@ -69,8 +69,5 @@ export function hasUnavailableLines(
 }
 
 export function calculateRequestSubtotal(lines: ReturnType<typeof resolveRequestLines>) {
-  return lines.reduce(
-    (sum, entry) => sum + (entry.product?.price ?? 0) * entry.line.quantity,
-    0,
-  );
+  return lines.reduce((sum, entry) => sum + (entry.product?.price ?? 0) * entry.line.quantity, 0);
 }
