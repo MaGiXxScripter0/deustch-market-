@@ -1261,6 +1261,80 @@
   gap: 18px;
 }
 
+.admin-guest-contact {
+  display: grid;
+  gap: 18px;
+}
+
+.admin-guest-contact-card {
+  display: grid;
+  gap: 20px;
+  padding: 24px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--white);
+}
+
+.admin-guest-contact-card h2 {
+  margin: 0 0 8px;
+  font-size: 21px;
+}
+
+.admin-guest-contact-card p:not(.kicker) {
+  max-width: 680px;
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.65;
+}
+
+.admin-guest-contact-card dl {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0;
+}
+
+.admin-guest-contact-card dl > div {
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fbfdfb;
+}
+
+.admin-guest-contact-card dt {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.admin-guest-contact-card dd {
+  margin: 5px 0 0;
+  font-weight: 700;
+}
+
+.admin-guest-contact-card a {
+  color: var(--accent);
+}
+
+.admin-guest-order-link {
+  width: fit-content;
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 15px;
+  border-radius: 8px;
+  background: var(--green);
+  color: var(--white) !important;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+@media (max-width: 760px) {
+  .admin-guest-contact-card dl {
+    grid-template-columns: 1fr;
+  }
+}
+
 .admin-customer-contact,
 .admin-customer-orders {
   padding: 20px;
