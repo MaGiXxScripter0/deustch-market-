@@ -51,6 +51,22 @@ export const requestSchema = z
 
 export type ValidRequest = z.infer<typeof requestSchema>;
 
+export function getPickupOrderRpcFailure(message: string | null | undefined) {
+  if (message === "Insufficient pickup inventory" || message === "Product is not available for pickup")
+    return {
+      error: "Die gewünschte Menge ist aktuell nicht zur Abholung verfügbar.",
+      status: 409 as const,
+      shouldLog: false,
+    };
+  if (message === "Invalid pickup slot")
+    return { error: "Ungültiger Abholtermin.", status: 400 as const, shouldLog: false };
+  return {
+    error: "Die Bestellung konnte nicht gespeichert werden.",
+    status: 503 as const,
+    shouldLog: true,
+  };
+}
+
 export function resolveRequestLines(payload: ValidRequest, products: Product[]) {
   return payload.items.map((line) => ({
     line,

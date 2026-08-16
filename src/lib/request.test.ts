@@ -3,6 +3,7 @@ import { products } from "./catalog-data";
 import {
   calculateRequestSubtotal,
   getRequestContactDefaults,
+  getPickupOrderRpcFailure,
   hasUnavailableLines,
   requestSchema,
   resolveRequestLines,
@@ -18,6 +19,22 @@ const validPayload = {
 };
 
 describe("request validation", () => {
+  it("turns a pickup inventory race into a conflict response", () => {
+    expect(getPickupOrderRpcFailure("Insufficient pickup inventory")).toEqual({
+      error: "Die gewünschte Menge ist aktuell nicht zur Abholung verfügbar.",
+      status: 409,
+      shouldLog: false,
+    });
+  });
+
+  it("keeps unexpected pickup-order failures private", () => {
+    expect(getPickupOrderRpcFailure("database connection failed")).toEqual({
+      error: "Die Bestellung konnte nicht gespeichert werden.",
+      status: 503,
+      shouldLog: true,
+    });
+  });
+
   it("rejects missing consent", () => {
     expect(requestSchema.safeParse({ ...validPayload, consent: false }).success).toBe(false);
   });

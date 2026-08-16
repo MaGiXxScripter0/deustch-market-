@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getCatalogData } from "@/lib/catalog-repository";
 import {
   calculateRequestSubtotal,
+  getPickupOrderRpcFailure,
   hasUnavailableLines,
   requestSchema,
   resolveRequestLines,
@@ -56,6 +57,12 @@ export async function POST(request: Request) {
           pickupSlot: parsed.data.pickupSlot,
           subtotal,
         });
+    }
+    if (error) {
+      const failure = getPickupOrderRpcFailure(error.message);
+      if (failure.shouldLog)
+        console.error("Pickup order RPC failed", { code: error.code, message: error.message });
+      return NextResponse.json({ error: failure.error }, { status: failure.status });
     }
     if (process.env.NODE_ENV === "production")
       return NextResponse.json(
